@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { recommendStake } from "@/lib/staking";
+import { parseDecimal } from "@/lib/format";
 import type { Strategy } from "@/lib/types";
 
 const field =
@@ -27,9 +28,9 @@ export function StakingCalculator({
   const [strategy, setStrategy] = useState<Strategy>(initialStrategy);
 
   const result = useMemo(() => {
-    const b = parseFloat(bankroll);
-    const o = parseFloat(odds);
-    const p = parseFloat(winProb) / 100;
+    const b = parseDecimal(bankroll);
+    const o = parseDecimal(odds);
+    const p = parseDecimal(winProb) / 100;
     if (!Number.isFinite(b) || !Number.isFinite(o) || !Number.isFinite(p)) {
       return null;
     }

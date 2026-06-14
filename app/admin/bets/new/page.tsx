@@ -6,7 +6,7 @@ import { NewBetForm } from "./NewBetForm";
 export const metadata: Metadata = { title: "New Bet" };
 
 export default async function NewBetPage() {
-  const tournaments = await getTournaments();
+  const tournaments = await getTournaments({ upcomingOnly: true });
 
   return (
     <div className="space-y-4">

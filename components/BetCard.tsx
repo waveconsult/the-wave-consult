@@ -50,8 +50,12 @@ export function BetCard({
         </span>
       </div>
 
-      {/* stat-grid */}
-      <div className="mb-3 grid grid-cols-3 gap-2">
+      {/* stat-grid — Min odd only shown when a floor was set */}
+      <div
+        className={`mb-3 grid gap-2 ${
+          bet.min_odd != null ? "grid-cols-3" : "grid-cols-2"
+        }`}
+      >
         <Stat label="Stake" value={String(bet.stake_pct)} unit="%" />
         <Stat
           label="Amount"
@@ -61,7 +65,9 @@ export function BetCard({
           })}
           unit="€"
         />
-        <Stat label="Min odd" value={odds(bet.min_odd)} />
+        {bet.min_odd != null ? (
+          <Stat label="Min odd" value={odds(bet.min_odd)} />
+        ) : null}
       </div>
 
       {bet.reasoning ? (

@@ -24,13 +24,24 @@ async function resolveScreenshot(
   return data?.signedUrl ?? null;
 }
 
-export async function getTournaments(): Promise<Tournament[]> {
+export async function getTournaments(
+  opts: { upcomingOnly?: boolean } = {},
+): Promise<Tournament[]> {
   const supabase = await createClient();
   const { data } = await supabase
     .from("tournaments")
     .select("*")
     .order("start_date", { ascending: true });
-  return (data as Tournament[]) ?? [];
+  let list = (data as Tournament[]) ?? [];
+
+  if (opts.upcomingOnly) {
+    // Keep only events that are ongoing or in the future (end_date today or
+    // later). Events without an end date are always kept.
+    const today = new Date().toISOString().slice(0, 10);
+    list = list.filter((t) => !t.end_date || t.end_date >= today);
+  }
+
+  return list;
 }
 
 export async function getBets(

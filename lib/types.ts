@@ -41,7 +41,7 @@ export interface Bet {
   market: string;
   odds: number;
   stake_pct: number;
-  min_odd: number;
+  min_odd: number | null;
   status: BetStatus;
   reasoning: string | null;
   screenshot_path: string | null;

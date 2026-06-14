@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import { parseDecimal } from "@/lib/format";
 import type { Strategy } from "@/lib/types";
 
 export type RiskState =
@@ -16,10 +17,10 @@ export async function updateRiskSettings(
   _prev: RiskState,
   formData: FormData,
 ): Promise<RiskState> {
-  const bankroll = Number(formData.get("bankroll"));
+  const bankroll = parseDecimal(formData.get("bankroll"));
   const strategy = String(formData.get("staking_strategy")) as Strategy;
-  const maxStake = Number(formData.get("max_stake_pct"));
-  const unit = Number(formData.get("unit_size"));
+  const maxStake = parseDecimal(formData.get("max_stake_pct"));
+  const unit = parseDecimal(formData.get("unit_size"));
 
   if (!Number.isFinite(bankroll) || bankroll < 0)
     return { status: "error", message: "Bankroll must be 0 or more." };

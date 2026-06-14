@@ -3,6 +3,7 @@
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import { parseDecimal } from "@/lib/format";
 import type { BetStatus, InsightStatRow } from "@/lib/types";
 
 const BUCKET = "bet-shots";
@@ -12,7 +13,7 @@ const VALID_STATUS: BetStatus[] = ["open", "won", "lost", "void"];
 export type AdminState = { error: string } | null;
 
 function num(v: FormDataEntryValue | null): number {
-  return Number(String(v ?? ""));
+  return parseDecimal(v); // accepts "1,75" and "1.75"
 }
 function str(v: FormDataEntryValue | null): string {
   return String(v ?? "").trim();
@@ -45,7 +46,7 @@ export async function createBet(
   const market = str(formData.get("market"));
   const odds = num(formData.get("odds"));
   const stakePct = num(formData.get("stake_pct"));
-  const minOdd = num(formData.get("min_odd"));
+  const minOddRaw = str(formData.get("min_odd"));
   const status = str(formData.get("status")) as BetStatus;
   const clvRaw = str(formData.get("clv"));
 
@@ -55,8 +56,14 @@ export async function createBet(
     return { error: "Odds must be greater than 1." };
   if (!Number.isFinite(stakePct) || stakePct < 0)
     return { error: "Stake % must be 0 or more." };
-  if (!Number.isFinite(minOdd) || minOdd <= 1)
-    return { error: "Min odd must be greater than 1." };
+
+  // Min odd is optional (discipline floor). Validate only when provided.
+  let minOdd: number | null = null;
+  if (minOddRaw) {
+    minOdd = num(formData.get("min_odd"));
+    if (!Number.isFinite(minOdd) || minOdd <= 1)
+      return { error: "Min odd must be greater than 1 (or leave it empty)." };
+  }
   if (!VALID_STATUS.includes(status)) return { error: "Invalid status." };
 
   // Validate the optional screenshot before inserting.

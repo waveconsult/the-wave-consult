@@ -47,7 +47,7 @@ create table public.bets (
   market text not null,
   odds numeric not null,
   stake_pct numeric not null,           -- % of bankroll (recommended)
-  min_odd numeric not null,             -- discipline floor
+  min_odd numeric,                      -- optional discipline floor (nullable)
   status text not null default 'open' check (status in ('open','won','lost','void')),
   reasoning text,
   screenshot_path text,                 -- storage path in 'bet-shots' bucket

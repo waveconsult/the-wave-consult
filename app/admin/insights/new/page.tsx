@@ -6,7 +6,7 @@ import { NewInsightForm } from "./NewInsightForm";
 export const metadata: Metadata = { title: "New Insight" };
 
 export default async function NewInsightPage() {
-  const tournaments = await getTournaments();
+  const tournaments = await getTournaments({ upcomingOnly: true });
 
   return (
     <div className="space-y-4">
