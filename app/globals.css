@@ -1,26 +1,112 @@
 @import "tailwindcss";
 
+/* ============================================================
+   The Wave Consult — design tokens (see briefing §10)
+   Dark, premium, calm. Numbers always in mono.
+   ============================================================ */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --bg: #0b0a10;
+  --bg-deep: #08070c;
+  --surface: #15131f;
+  --surface-2: #1b1828;
+  --elevated: #221d33;
+
+  --border: rgba(255, 255, 255, 0.08);
+  --border-strong: rgba(255, 255, 255, 0.14);
+
+  --text: #f4f2f8;
+  --muted: #9a93ad;
+  --faint: #6b6580;
+
+  --primary: #8b5cf6;
+  --primary-bright: #a855f7;
+  --primary-deep: #6d28d9;
+
+  --pos: #4ade80;
+  --neg: #fb7185;
+  --warn: #fbbf24;
+
+  --radius-card: 18px;
 }
 
+/* Map tokens to Tailwind v4 utilities (bg-bg, text-muted, border-border, etc.) */
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --color-bg: var(--bg);
+  --color-bg-deep: var(--bg-deep);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-elevated: var(--elevated);
+
+  --color-border: var(--border);
+  --color-border-strong: var(--border-strong);
+
+  --color-text: var(--text);
+  --color-muted: var(--muted);
+  --color-faint: var(--faint);
+
+  --color-primary: var(--primary);
+  --color-primary-bright: var(--primary-bright);
+  --color-primary-deep: var(--primary-deep);
+
+  --color-pos: var(--pos);
+  --color-neg: var(--neg);
+  --color-warn: var(--warn);
+
+  --font-display: var(--font-space-grotesk), system-ui, sans-serif;
+  --font-body: var(--font-inter), system-ui, sans-serif;
+  --font-mono: var(--font-jetbrains-mono), ui-monospace, monospace;
+
+  --radius-card: 18px;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+* {
+  border-color: var(--border);
+}
+
+html {
+  background: var(--bg);
+  color-scheme: dark;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background:
+    radial-gradient(120% 80% at 50% -10%, rgba(109, 40, 217, 0.18), transparent 60%),
+    var(--bg);
+  color: var(--text);
+  font-family: var(--font-body);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+/* All numbers / data in mono (briefing §10) */
+.mono {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.01em;
+}
+
+/* Reusable card surface: radius ~18px, hairline border, soft purple glow on emphasis */
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-card);
+}
+.card-emphasis {
+  border-color: var(--border-strong);
+  box-shadow: 0 0 0 1px rgba(139, 92, 246, 0.08), 0 12px 40px -16px rgba(139, 92, 246, 0.35);
+}
+
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--surface-2);
+  border-radius: 999px;
+}
+
+input,
+select,
+textarea {
+  color-scheme: dark;
 }
