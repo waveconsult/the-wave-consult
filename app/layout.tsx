@@ -25,18 +25,18 @@ const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://thewaveconsult.com
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
-  applicationName: "The Wave Consult",
+  applicationName: "WaveHub",
   title: {
-    default: "The Wave Consult",
-    template: "%s · The Wave Consult",
+    default: "WaveHub",
+    template: "%s · WaveHub",
   },
   description:
-    "A tennis betting consulting tool. Discipline and Closing Line Value over hype. ATP & WTA analysis only — no wagers are taken or processed. 18+. Gamble responsibly.",
+    "A tennis betting analysis tool. Discipline and Closing Line Value over hype. ATP & WTA analysis only — no wagers are taken or processed. 18+. Gamble responsibly.",
   manifest: "/manifest.json",
   appleWebApp: {
     capable: true,
     statusBarStyle: "black-translucent",
-    title: "Wave",
+    title: "WaveHub",
   },
   icons: {
     icon: "/icons/icon-192.png",

@@ -26,9 +26,9 @@ export function ResponsibleGamblingBanner() {
       </svg>
       <span>
         <b className="text-text">18+ · Gamble responsibly.</b> Only stake what
-        you can afford to lose. The Wave Consult is an analysis tool — not a
-        bookmaker — and does not take, hold, or move money. No profit is
-        guaranteed. {HELPLINE_PLACEHOLDER}
+        you can afford to lose. WaveHub is an analysis tool — not a bookmaker —
+        and does not take, hold, or move money. No profit is guaranteed.{" "}
+        {HELPLINE_PLACEHOLDER}
       </span>
     </div>
   );

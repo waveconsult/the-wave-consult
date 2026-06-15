@@ -17,7 +17,7 @@ export default async function AdminLayout({
             Admin
           </span>
           <span className="font-display text-sm font-semibold text-text">
-            The Wave Consult
+            WaveHub
           </span>
         </div>
         <Link

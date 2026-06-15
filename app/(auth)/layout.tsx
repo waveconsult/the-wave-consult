@@ -12,7 +12,7 @@ export default function AuthLayout({
         <div className="mb-8 flex flex-col items-center gap-3 text-center">
           <Brand size={36} />
           <p className="max-w-xs text-sm text-muted">
-            A tennis betting consulting tool. Discipline and Closing Line Value
+            A tennis betting analysis tool. Discipline and Closing Line Value
             over hype — not a bookmaker.
           </p>
         </div>

@@ -1,7 +1,7 @@
 {
-  "name": "The Wave Consult",
-  "short_name": "Wave",
-  "description": "A tennis betting consulting tool — discipline and Closing Line Value over hype. ATP & WTA analysis only. 18+. Gamble responsibly.",
+  "name": "WaveHub",
+  "short_name": "WaveHub",
+  "description": "A tennis betting analysis tool — discipline and Closing Line Value over hype. ATP & WTA analysis only. 18+. Gamble responsibly.",
   "start_url": "/bets",
   "scope": "/",
   "display": "standalone",

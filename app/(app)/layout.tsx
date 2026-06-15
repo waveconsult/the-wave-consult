@@ -14,7 +14,7 @@ export default async function AppLayout({
   return (
     <div className="mx-auto flex min-h-dvh max-w-md flex-col">
       <header className="sticky top-0 z-30 flex items-center justify-between border-b border-border bg-bg/80 px-5 py-3 backdrop-blur-xl">
-        <Link href="/bets" aria-label="Wave Consult home">
+        <Link href="/bets" aria-label="WaveHub home">
           <Brand size={28} />
         </Link>
       </header>

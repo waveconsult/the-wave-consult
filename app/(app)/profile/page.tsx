@@ -122,7 +122,7 @@ export default async function ProfilePage() {
       </form>
 
       <p className="mt-4 text-center text-[10px] leading-relaxed text-faint">
-        Wave Consult · Tennis betting consulting
+        WaveHub · Tennis betting analysis
         <br />
         No profit guarantees · 18+
       </p>

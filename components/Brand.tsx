@@ -40,7 +40,7 @@ export function Brand({ size = 30 }: { size?: number }) {
     <div className="flex items-center gap-2.5">
       <WaveGlyph size={size} />
       <span className="font-display text-lg font-bold tracking-wide text-text">
-        Wave<span className="text-primary-bright"> Consult</span>
+        Wave<span className="text-primary-bright">Hub</span>
       </span>
     </div>
   );
