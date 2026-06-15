@@ -4,161 +4,122 @@ import { useActionState, useState } from "react";
 import type { Tier } from "@/lib/types";
 import { joinTier, type JoinState } from "./actions";
 
-type Billing = "monthly" | "yearly";
+type Tab = "premium" | "free";
 
-type Feature = { text: string; off?: boolean };
-
-const PLANS: {
-  tier: "core" | "private";
-  name: string;
-  monthly: string;
-  yearly: string;
-  desc: React.ReactNode;
-  features: Feature[];
-  recommended?: boolean;
-}[] = [
+const PREMIUM = [
   {
-    tier: "core",
-    name: "Wave Core",
-    monthly: "€99",
-    yearly: "€890",
-    desc: "The system and the bet feed. For everyone who wants to leave gut feeling behind and move into a repeatable process.",
-    features: [
-      { text: "Daily bet feed (ATP & WTA)" },
-      { text: "Match insights & stats" },
-      { text: "Staking & bankroll calculator" },
-      { text: "CLV tracking" },
-      { text: "1-on-1 analyst", off: true },
-      { text: "Personal bankroll plan", off: true },
-    ],
+    tier: "core" as const,
+    name: "Core",
+    price: "€890",
+    tagline: "The system & the feed.",
+    features: ["Daily bet feed (ATP & WTA)", "Match insights & stats", "CLV tracking"],
+    emphasis: false,
   },
   {
-    tier: "private",
-    name: "Wave Private",
-    monthly: "€149",
-    yearly: "€1,390",
-    recommended: true,
-    desc: (
-      <>
-        The system — applied to <b className="text-text">you</b>. A personal
-        analyst, individually calibrated. More depth, not more bets.
-      </>
-    ),
-    features: [
-      { text: "Everything in Core" },
-      { text: "1-on-1 analyst, direct line" },
-      { text: "Individually calibrated staking plan" },
-      { text: "Bankroll & portfolio review" },
-      { text: "Prioritised bet reasoning" },
-    ],
+    tier: "private" as const,
+    name: "Private",
+    price: "€1,390",
+    tagline: "Tailored to you.",
+    features: ["Everything in Core", "1-on-1 analyst", "Calibrated staking plan"],
+    emphasis: true,
   },
 ];
 
 export function PlansView({ currentTier }: { currentTier: Tier }) {
-  const [billing, setBilling] = useState<Billing>("monthly");
+  const [tab, setTab] = useState<Tab>("premium");
 
   return (
     <>
-      <div className="mb-4 flex gap-1 rounded-2xl border border-border bg-surface p-1">
-        {(["monthly", "yearly"] as Billing[]).map((b) => (
+      <div className="mb-5 flex gap-1 rounded-2xl border border-border bg-surface p-1">
+        {(["premium", "free"] as const).map((t) => (
           <button
-            key={b}
-            onClick={() => setBilling(b)}
+            key={t}
+            onClick={() => setTab(t)}
             className={`flex-1 rounded-[10px] py-2.5 text-[13px] font-semibold capitalize transition ${
-              billing === b
+              tab === t
                 ? "bg-gradient-to-br from-primary-deep to-primary text-white shadow-[0_4px_14px_rgba(109,40,217,0.4)]"
-                : "text-muted hover:text-text"
+                : "text-muted"
             }`}
           >
-            {b}
+            {t}
           </button>
         ))}
       </div>
 
-      {PLANS.map((plan) => (
-        <PlanCard
-          key={plan.tier}
-          plan={plan}
-          billing={billing}
-          currentTier={currentTier}
-        />
-      ))}
+      {tab === "premium" ? (
+        PREMIUM.map((p) => (
+          <PremiumCard key={p.tier} plan={p} currentTier={currentTier} />
+        ))
+      ) : (
+        <div className="rounded-[20px] border border-border p-5">
+          <div className="flex items-center justify-between">
+            <h3 className="font-display text-xl font-bold text-text">Free</h3>
+            {currentTier === "none" && (
+              <span className="rounded-full border border-pos/30 bg-pos/10 px-2.5 py-0.5 text-[11px] font-medium text-pos">
+                Current
+              </span>
+            )}
+          </div>
+          <p className="mt-1 text-xs text-muted">No subscription needed.</p>
+          <div className="mt-3 flex items-baseline gap-1.5">
+            <span className="mono text-[30px] font-bold text-text">€0</span>
+            <span className="text-[13px] text-muted">forever</span>
+          </div>
+          <ul className="mt-4 space-y-1.5">
+            {["Browse the bet feed", "Match insights", "Staking calculator"].map((f) => (
+              <li key={f} className="flex items-start gap-2.5 text-[13px] text-muted">
+                <span className="mt-0.5 text-primary-bright">✓</span>
+                {f}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
 
-      <p className="mx-2 mt-1 text-center text-[13px] leading-relaxed text-faint">
-        Private differentiates through personalization — not through more betting
-        volume. No money is processed in the app.
+      <p className="mx-2 mt-4 text-center text-[12px] leading-relaxed text-faint">
+        Billed yearly. No money is processed in the app.
       </p>
     </>
   );
 }
 
-function Check({ off }: { off?: boolean }) {
-  const stroke = off ? "#6b6580" : "#a855f7";
-  return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" className="mt-0.5 shrink-0">
-      <circle cx="12" cy="12" r="10" stroke={stroke} strokeWidth="1.6" />
-      <path
-        d="M8 12.5l2.5 2.5L16 9"
-        stroke={stroke}
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
-  );
-}
-
-function PlanCard({
+function PremiumCard({
   plan,
-  billing,
   currentTier,
 }: {
-  plan: (typeof PLANS)[number];
-  billing: Billing;
+  plan: (typeof PREMIUM)[number];
   currentTier: Tier;
 }) {
   const [state, formAction, pending] = useActionState<JoinState, FormData>(
     joinTier,
     { status: "idle" },
   );
-  const price = billing === "monthly" ? plan.monthly : plan.yearly;
-  const per = billing === "monthly" ? "/month" : "/year";
   const isCurrent = currentTier === plan.tier;
 
   return (
     <div
       className={`relative mb-3.5 overflow-hidden rounded-[20px] border p-5 ${
-        plan.recommended
+        plan.emphasis
           ? "border-primary/40 bg-[linear-gradient(170deg,rgba(109,40,217,0.14),transparent_70%)]"
           : "border-border"
       }`}
     >
-      {plan.recommended ? (
+      {plan.emphasis && (
         <span className="mono absolute right-4 top-4 rounded-md border border-primary/30 bg-primary/15 px-2 py-1 text-[9px] font-bold uppercase tracking-widest text-primary-bright">
           Recommended
         </span>
-      ) : null}
-
+      )}
       <h3 className="font-display text-xl font-bold text-text">{plan.name}</h3>
-      <p className="mb-3.5 mt-1.5 text-xs leading-relaxed text-muted">
-        {plan.desc}
-      </p>
-
-      <div className="flex items-baseline gap-1.5">
-        <span className="mono text-[32px] font-bold text-text">{price}</span>
-        <span className="text-[13px] text-muted">{per}</span>
+      <p className="mt-1 text-xs text-muted">{plan.tagline}</p>
+      <div className="mt-3 flex items-baseline gap-1.5">
+        <span className="mono text-[30px] font-bold text-text">{plan.price}</span>
+        <span className="text-[13px] text-muted">/year</span>
       </div>
-
-      <ul className="my-3.5 space-y-1">
+      <ul className="my-4 space-y-1.5">
         {plan.features.map((f) => (
-          <li
-            key={f.text}
-            className={`flex items-start gap-2.5 py-1 text-[13px] ${
-              f.off ? "text-faint line-through decoration-white/20" : "text-text"
-            }`}
-          >
-            <Check off={f.off} />
-            {f.text}
+          <li key={f} className="flex items-start gap-2.5 text-[13px] text-muted">
+            <span className="mt-0.5 text-primary-bright">✓</span>
+            {f}
           </li>
         ))}
       </ul>
@@ -169,7 +130,7 @@ function PlanCard({
         </div>
       ) : state.status === "ok" ? (
         <div className="rounded-xl border border-pos/30 bg-pos/10 px-4 py-3 text-center text-[13px] text-pos">
-          Welcome to {plan.name}! Your access is active — no payment in the app.
+          Welcome to {plan.name}! Your access is active.
         </div>
       ) : (
         <form action={formAction}>
@@ -178,16 +139,16 @@ function PlanCard({
             type="submit"
             disabled={pending}
             className={`block w-full rounded-[13px] py-3.5 text-sm font-semibold transition active:scale-[0.98] disabled:opacity-60 ${
-              plan.recommended
+              plan.emphasis
                 ? "bg-gradient-to-br from-primary-deep to-primary text-white shadow-[0_6px_20px_rgba(109,40,217,0.4)]"
                 : "border border-border-strong text-text"
             }`}
           >
             {pending ? "One moment…" : "Join now"}
           </button>
-          {state.status === "error" ? (
+          {state.status === "error" && (
             <p className="mt-2 text-center text-xs text-neg">{state.message}</p>
-          ) : null}
+          )}
         </form>
       )}
     </div>

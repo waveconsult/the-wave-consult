@@ -10,10 +10,7 @@ export default async function ToolsPage() {
 
   return (
     <>
-      <PageHeader
-        title="Staking Calculator"
-        subtitle="It also tells you when not to bet. That's the point."
-      />
+      <PageHeader title="Staking" />
       <StakingCalculator
         initialBankroll={profile.bankroll}
         initialStrategy={profile.staking_strategy}

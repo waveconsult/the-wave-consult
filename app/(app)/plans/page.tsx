@@ -10,10 +10,7 @@ export default async function PlansPage() {
 
   return (
     <>
-      <PageHeader
-        title="Plans"
-        subtitle="Apply first → on acceptance you choose your tier. Limited spots per intake."
-      />
+      <PageHeader title="Plans" />
       <PlansView currentTier={profile.tier} />
     </>
   );

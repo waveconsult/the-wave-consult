@@ -25,14 +25,7 @@ export default async function BetsPage({
 
   return (
     <>
-      <PageHeader
-        title={isInsights ? "Insights" : "Bets"}
-        subtitle={
-          isInsights
-            ? "Match analysis & stats behind every bet."
-            : "Tennis · ATP & WTA — curated, no hype."
-        }
-      />
+      <PageHeader title={isInsights ? "Insights" : "Bets"} />
 
       <SegmentedToggle view={isInsights ? "insights" : "bets"} />
 

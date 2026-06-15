@@ -91,10 +91,8 @@ export function StakingCalculator({
         <ResultPanel result={result} kellyWord={kellyWord} />
       </div>
 
-      <p className="mx-1 mt-1 text-[13px] leading-relaxed text-faint">
-        Fractional Kelly criterion, capped at max. 3% of bankroll per bet.
-        Conservative (¼ Kelly) is the default for sustainable bankroll
-        management. Estimates only — not a profit promise.
+      <p className="mx-1 mt-1 text-[12px] leading-relaxed text-faint">
+        Fractional Kelly, capped at 3%. Estimates only — not a profit promise.
       </p>
     </>
   );

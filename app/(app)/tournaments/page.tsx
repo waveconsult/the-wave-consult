@@ -18,10 +18,7 @@ export default async function TournamentsPage() {
 
   return (
     <>
-      <PageHeader
-        title="Tournaments"
-        subtitle="ATP & WTA. Tap a tournament to filter the bets."
-      />
+      <PageHeader title="Tournaments" subtitle="ATP & WTA" />
 
       {tournaments.length === 0 ? (
         <div className="card flex flex-col items-center gap-1 px-6 py-12 text-center">
