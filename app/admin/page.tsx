@@ -33,6 +33,11 @@ export default async function AdminHome() {
           title="New Insight"
           desc="Publish match analysis"
         />
+        <ActionTile
+          href="/admin/resources/new"
+          title="New Resource"
+          desc="Upload a PDF / tool"
+        />
       </div>
 
       <section>

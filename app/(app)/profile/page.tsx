@@ -78,8 +78,7 @@ export default async function ProfilePage() {
           </>
         )}
         <p className="mt-3 text-[11px] leading-relaxed text-faint">
-          Settled WaveHub picks since you joined, at your bankroll. Past results —
-          not a promise.
+          Your settled picks since you joined, at your bankroll.
         </p>
       </div>
 

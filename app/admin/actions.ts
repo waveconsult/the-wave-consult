@@ -7,10 +7,28 @@ import { parseDecimal } from "@/lib/format";
 import type { BetStatus, InsightStatRow } from "@/lib/types";
 
 const BUCKET = "bet-shots";
+const RESOURCES_BUCKET = "resources";
 const MAX_BYTES = 5 * 1024 * 1024; // 5 MB cap (briefing §6)
+const MAX_PDF_BYTES = 20 * 1024 * 1024; // 20 MB cap for resource PDFs
 const VALID_STATUS: BetStatus[] = ["open", "won", "lost", "void"];
 
 export type AdminState = { error: string } | null;
+
+// Re-check admin from a server action (these are POST-reachable directly).
+async function requireAdminUser(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+) {
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return null;
+  const { data: me } = await supabase
+    .from("profiles")
+    .select("role")
+    .eq("id", user.id)
+    .single();
+  return me?.role === "admin" ? user : null;
+}
 
 function num(v: FormDataEntryValue | null): number {
   return parseDecimal(v); // accepts "1,75" and "1.75"
@@ -167,4 +185,64 @@ export async function createInsight(
 
   revalidatePath("/", "layout");
   redirect("/bets?view=insights");
+}
+
+// ---- Delete a bet (admin, from the feed) ----
+export async function deleteBet(formData: FormData): Promise<void> {
+  const supabase = await createClient();
+  const admin = await requireAdminUser(supabase);
+  if (!admin) return;
+
+  const id = str(formData.get("id"));
+  if (!id) return;
+
+  // Best-effort: remove the screenshot from storage too.
+  const { data: bet } = await supabase
+    .from("bets")
+    .select("screenshot_path")
+    .eq("id", id)
+    .single();
+  if (bet?.screenshot_path) {
+    await supabase.storage.from(BUCKET).remove([bet.screenshot_path]);
+  }
+
+  await supabase.from("bets").delete().eq("id", id);
+  revalidatePath("/", "layout");
+}
+
+// ---- New Resource (admin uploads a PDF/tool — same pattern as bets) ----
+export async function createResource(
+  _prev: AdminState,
+  formData: FormData,
+): Promise<AdminState> {
+  const supabase = await createClient();
+  const admin = await requireAdminUser(supabase);
+  if (!admin) return { error: "Admins only." };
+
+  const title = str(formData.get("title"));
+  if (!title) return { error: "Title is required." };
+
+  const file = formData.get("file");
+  if (!(file instanceof File) || file.size === 0)
+    return { error: "Please choose a PDF." };
+  if (file.type !== "application/pdf")
+    return { error: "File must be a PDF." };
+  if (file.size > MAX_PDF_BYTES)
+    return { error: "PDF must be 20 MB or smaller." };
+
+  const path = `${crypto.randomUUID()}.pdf`;
+  const { error: uploadErr } = await supabase.storage
+    .from(RESOURCES_BUCKET)
+    .upload(path, file, { contentType: "application/pdf", upsert: false });
+  if (uploadErr) return { error: uploadErr.message };
+
+  const { error } = await supabase.from("resources").insert({
+    title,
+    file_path: path,
+    created_by: admin.id,
+  });
+  if (error) return { error: error.message };
+
+  revalidatePath("/", "layout");
+  redirect("/tools");
 }

@@ -68,6 +68,15 @@ export interface Insight {
   created_by: string | null;
 }
 
+export interface Resource {
+  id: string;
+  title: string;
+  file_path: string;
+  created_at: string;
+  created_by: string | null;
+  url?: string | null;
+}
+
 export interface Application {
   id: string;
   email: string;

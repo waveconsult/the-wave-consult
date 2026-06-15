@@ -43,7 +43,11 @@ export default async function BetsPage({
       {isInsights ? (
         <InsightsList />
       ) : (
-        <BetsList bankroll={profile.bankroll} tournamentId={tournament} />
+        <BetsList
+          bankroll={profile.bankroll}
+          tournamentId={tournament}
+          isAdmin={profile.role === "admin"}
+        />
       )}
     </>
   );
@@ -52,9 +56,11 @@ export default async function BetsPage({
 async function BetsList({
   bankroll,
   tournamentId,
+  isAdmin,
 }: {
   bankroll: number;
   tournamentId?: string;
+  isAdmin: boolean;
 }) {
   const bets = await getBets(tournamentId);
 
@@ -70,7 +76,7 @@ async function BetsList({
   return (
     <div className="space-y-4">
       {bets.map((bet) => (
-        <BetCard key={bet.id} bet={bet} bankroll={bankroll} />
+        <BetCard key={bet.id} bet={bet} bankroll={bankroll} isAdmin={isAdmin} />
       ))}
     </div>
   );

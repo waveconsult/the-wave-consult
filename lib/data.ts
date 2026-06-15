@@ -2,6 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import type {
   BetWithMeta,
   InsightWithMeta,
+  Resource,
   Tournament,
 } from "@/lib/types";
 
@@ -68,6 +69,20 @@ export async function getBets(
       screenshot_url: await resolveScreenshot(supabase, b.screenshot_path),
     })),
   );
+}
+
+export async function getResources(): Promise<Resource[]> {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("resources")
+    .select("*")
+    .order("created_at", { ascending: false });
+  const rows = (data as Resource[]) ?? [];
+  return rows.map((r) => ({
+    ...r,
+    url: supabase.storage.from("resources").getPublicUrl(r.file_path).data
+      .publicUrl,
+  }));
 }
 
 export async function getInsights(): Promise<InsightWithMeta[]> {

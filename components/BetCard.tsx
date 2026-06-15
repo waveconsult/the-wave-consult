@@ -3,6 +3,7 @@ import { StatusBadge } from "./StatusBadge";
 import type { BetWithMeta } from "@/lib/types";
 import { betStakeAmount } from "@/lib/staking";
 import { odds } from "@/lib/format";
+import { deleteBet } from "@/app/admin/actions";
 
 // Structured pick card — matches the prototype layout: edge-head (meta + match
 // + status), a pick-row (selection/market + big odds), a 3-up stat grid
@@ -13,9 +14,11 @@ import { odds } from "@/lib/format";
 export function BetCard({
   bet,
   bankroll,
+  isAdmin = false,
 }: {
   bet: BetWithMeta;
   bankroll: number;
+  isAdmin?: boolean;
 }) {
   const amount = betStakeAmount(bankroll, bet.stake_pct);
   const tournamentLabel = bet.tournament?.name ?? "Tournament";
@@ -34,7 +37,23 @@ export function BetCard({
             {bet.match}
           </h3>
         </div>
-        <StatusBadge status={bet.status} />
+        <div className="flex shrink-0 items-center gap-2">
+          <StatusBadge status={bet.status} />
+          {isAdmin ? (
+            <form action={deleteBet}>
+              <input type="hidden" name="id" value={bet.id} />
+              <button
+                type="submit"
+                aria-label="Delete bet"
+                className="rounded-md border border-border px-1.5 py-1 text-faint transition hover:border-neg/40 hover:text-neg"
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14" />
+                </svg>
+              </button>
+            </form>
+          ) : null}
+        </div>
       </div>
 
       {/* pick-row: selection / market | odds */}
