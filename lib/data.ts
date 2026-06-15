@@ -79,6 +79,40 @@ export async function getInsights(): Promise<InsightWithMeta[]> {
   return (data as InsightWithMeta[]) ?? [];
 }
 
+// Real track record from SETTLED picks (won/lost) published since `sinceISO`.
+// Profit is expressed as a fraction of bankroll (units = fraction × 100), based
+// on each pick's stake_pct and odds. This is real, computed data — not
+// fabricated. Frame it as "past settled results", never as a promise.
+export async function getTrackRecord(sinceISO: string): Promise<{
+  won: number;
+  lost: number;
+  total: number;
+  units: number;
+  fraction: number;
+}> {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("bets")
+    .select("status, odds, stake_pct")
+    .in("status", ["won", "lost"])
+    .gte("published_at", sinceISO);
+
+  let won = 0;
+  let lost = 0;
+  let fraction = 0;
+  for (const b of (data as { status: string; odds: number; stake_pct: number }[]) ?? []) {
+    const stake = Number(b.stake_pct) / 100;
+    if (b.status === "won") {
+      won++;
+      fraction += stake * (Number(b.odds) - 1);
+    } else {
+      lost++;
+      fraction -= stake;
+    }
+  }
+  return { won, lost, total: won + lost, units: fraction * 100, fraction };
+}
+
 export async function getTournamentById(
   id: string,
 ): Promise<Tournament | null> {

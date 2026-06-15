@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname } from "next/navigation";
 
 // Bottom tab bar (briefing §5): Tournaments · Tools · Bets (center, raised) · Plans · Profile.
@@ -63,7 +64,7 @@ export function BottomNav() {
 
           if (item.center) {
             return (
-              <li key={item.href} className="relative -top-6">
+              <li key={item.href} className="relative -top-2.5">
                 <Link
                   href={item.href}
                   aria-label={item.label}
@@ -71,10 +72,16 @@ export function BottomNav() {
                   className="flex flex-col items-center gap-1"
                 >
                   <span
-                    className="flex h-[58px] w-[58px] items-center justify-center rounded-full border-4 border-bg bg-gradient-to-br from-primary-deep to-primary text-white"
-                    style={{ boxShadow: "0 8px 24px rgba(109,40,217,0.5)" }}
+                    className={`flex h-12 w-12 items-center justify-center rounded-2xl border bg-surface-2 transition ${
+                      active ? "border-primary-bright" : "border-border-strong"
+                    }`}
+                    style={{
+                      boxShadow: active
+                        ? "0 6px 20px rgba(109,40,217,0.45)"
+                        : "0 4px 14px rgba(0,0,0,0.4)",
+                    }}
                   >
-                    <Icon>{item.icon}</Icon>
+                    <Image src="/logo.png" alt="" width={26} height={26} priority />
                   </span>
                   <span
                     className={`text-[10px] font-semibold ${

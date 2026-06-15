@@ -242,17 +242,21 @@ const PREMIUM = [
   {
     tier: "core",
     name: "Core",
-    price: "€890",
+    price: "€479",
     tagline: "The system & the feed.",
-    features: ["Daily bet feed (ATP & WTA)", "Match insights & stats", "CLV tracking"],
+    features: ["Daily bet feed (ATP)", "Match insights & stats", "CLV tracking"],
     emphasis: false,
   },
   {
     tier: "private",
     name: "Private",
-    price: "€1,390",
+    price: "€779",
     tagline: "Tailored to you.",
-    features: ["Everything in Core", "1-on-1 analyst", "Calibrated staking plan"],
+    features: [
+      "Everything in Core",
+      "Premium web tools",
+      "Private live-info chat",
+    ],
     emphasis: true,
   },
 ] as const;

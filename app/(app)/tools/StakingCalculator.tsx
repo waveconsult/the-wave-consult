@@ -9,10 +9,9 @@ const field =
   "w-full rounded-xl border border-border bg-surface-2 px-3.5 py-3 text-base font-semibold text-text mono outline-none transition focus:border-primary focus:ring-[3px] focus:ring-primary/20";
 const label = "mb-1.5 mt-3.5 block text-xs font-medium text-muted";
 
-const STRATEGIES: { value: Strategy; label: string; kelly: string }[] = [
-  { value: "conservative", label: "Conservative", kelly: "Quarter" },
-  { value: "standard", label: "Standard", kelly: "Half" },
-  { value: "aggressive", label: "Aggressive", kelly: "Full" },
+const STRATEGIES: { value: Strategy; label: string }[] = [
+  { value: "conservative", label: "Conservative" },
+  { value: "aggressive", label: "Aggressive" },
 ];
 
 export function StakingCalculator({
@@ -36,9 +35,6 @@ export function StakingCalculator({
     }
     return recommendStake({ bankroll: b, odds: o, winProb: p, strategy });
   }, [bankroll, odds, winProb, strategy]);
-
-  const kellyWord =
-    STRATEGIES.find((s) => s.value === strategy)?.kelly ?? "Quarter";
 
   return (
     <>
@@ -88,11 +84,11 @@ export function StakingCalculator({
           })}
         </div>
 
-        <ResultPanel result={result} kellyWord={kellyWord} />
+        <ResultPanel result={result} />
       </div>
 
       <p className="mx-1 mt-1 text-[12px] leading-relaxed text-faint">
-        Fractional Kelly, capped at 3%. Estimates only — not a profit promise.
+        Capped at 3% of bankroll. Estimates only — not a profit promise.
       </p>
     </>
   );
@@ -100,10 +96,8 @@ export function StakingCalculator({
 
 function ResultPanel({
   result,
-  kellyWord,
 }: {
   result: ReturnType<typeof recommendStake> | null;
-  kellyWord: string;
 }) {
   if (!result) {
     return (
@@ -157,13 +151,12 @@ function ResultPanel({
         />
       </div>
       <p className="mt-2.5 text-[13px] leading-relaxed text-muted">
-        {kellyWord} Kelly
         {result.capped ? (
           <>
-            , <b className="text-text">capped at 3%</b> (bankroll protection)
+            <b className="text-text">Capped at 3%</b> (bankroll protection).{" "}
           </>
         ) : null}
-        . Never stake more than the plan says — not even after a loss.
+        Never stake more than the plan says — not even after a loss.
       </p>
     </div>
   );

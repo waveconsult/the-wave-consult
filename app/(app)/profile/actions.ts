@@ -12,6 +12,7 @@ export type RiskState =
 
 const STRATEGIES: Strategy[] = ["conservative", "standard", "aggressive"];
 
+// Simplified risk settings: just bankroll + strategy (conservative/aggressive).
 // Writing bankroll updates every bet card live (briefing §3, §5.5).
 export async function updateRiskSettings(
   _prev: RiskState,
@@ -19,17 +20,11 @@ export async function updateRiskSettings(
 ): Promise<RiskState> {
   const bankroll = parseDecimal(formData.get("bankroll"));
   const strategy = String(formData.get("staking_strategy")) as Strategy;
-  const maxStake = parseDecimal(formData.get("max_stake_pct"));
-  const unit = parseDecimal(formData.get("unit_size"));
 
   if (!Number.isFinite(bankroll) || bankroll < 0)
     return { status: "error", message: "Bankroll must be 0 or more." };
   if (!STRATEGIES.includes(strategy))
     return { status: "error", message: "Invalid strategy." };
-  if (!Number.isFinite(maxStake) || maxStake < 0 || maxStake > 100)
-    return { status: "error", message: "Max stake must be between 0 and 100%." };
-  if (!Number.isFinite(unit) || unit < 0)
-    return { status: "error", message: "Unit size must be 0 or more." };
 
   const supabase = await createClient();
   const {
@@ -39,12 +34,7 @@ export async function updateRiskSettings(
 
   const { error } = await supabase
     .from("profiles")
-    .update({
-      bankroll,
-      staking_strategy: strategy,
-      max_stake_pct: maxStake,
-      unit_size: unit,
-    })
+    .update({ bankroll, staking_strategy: strategy })
     .eq("id", user.id);
 
   if (error) return { status: "error", message: error.message };
