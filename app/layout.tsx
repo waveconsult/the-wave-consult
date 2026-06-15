@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Space_Grotesk, Inter, JetBrains_Mono } from "next/font/google";
 import { ServiceWorkerRegister } from "@/components/ServiceWorkerRegister";
+import { IntroSplash } from "@/components/IntroSplash";
 import "./globals.css";
 
 const spaceGrotesk = Space_Grotesk({
@@ -63,6 +64,7 @@ export default function RootLayout({
       className={`${spaceGrotesk.variable} ${inter.variable} ${jetbrainsMono.variable} h-full antialiased`}
     >
       <body className="min-h-full">
+        <IntroSplash />
         {children}
         <ServiceWorkerRegister />
       </body>
