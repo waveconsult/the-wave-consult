@@ -50,15 +50,15 @@ export function NewBetForm({ tournaments }: { tournaments: Tournament[] }) {
       {/* Explainer: Market vs Selection */}
       <div className="rounded-xl border border-border bg-surface-2 px-3.5 py-3 text-[12px] leading-relaxed text-muted">
         <p>
-          <b className="text-text">Market</b> = <i>was</i> du wettest (z. B.
-          Spielsieger, Über/Unter Games).{" "}
-          <b className="text-text">Selection</b> = <i>worauf konkret</i> (z. B.
-          „Alcaraz", „Over 22.5", „+1.5 Sätze").
+          <b className="text-text">Market</b> = <i>what</i> you bet on (e.g.
+          match winner, over/under games).{" "}
+          <b className="text-text">Selection</b> = <i>the specific pick</i>{" "}
+          (e.g. Alcaraz, Over 22.5, +1.5 sets).
         </p>
       </div>
 
       <div className="grid grid-cols-2 gap-3">
-        <L label="Tournament (laufende & kommende)" span>
+        <L label="Tournament (current & upcoming)" span>
           <select name="tournament_id" defaultValue="" className={field}>
             <option value="">— none —</option>
             {tournaments.map((t) => (
@@ -77,7 +77,7 @@ export function NewBetForm({ tournaments }: { tournaments: Tournament[] }) {
           <input name="round" placeholder="R16" className={field} />
         </L>
 
-        <L label="Market (was)">
+        <L label="Market (what you bet on)">
           <select
             value={market}
             onChange={(e) => setMarket(e.target.value)}
@@ -97,7 +97,7 @@ export function NewBetForm({ tournaments }: { tournaments: Tournament[] }) {
             <input
               value={customMarket}
               onChange={(e) => setCustomMarket(e.target.value)}
-              placeholder="z. B. Tie-break im 1. Satz"
+              placeholder="e.g. Tie-break in set 1"
               className={field}
             />
           </L>
@@ -106,11 +106,11 @@ export function NewBetForm({ tournaments }: { tournaments: Tournament[] }) {
         {/* actual submitted market value */}
         <input type="hidden" name="market" value={marketValue} />
 
-        <L label="Selection (worauf konkret)" span>
+        <L label="Selection (the specific pick)" span>
           <input
             name="selection"
             required
-            placeholder='z. B. "Alcaraz" oder "Over 22.5"'
+            placeholder='e.g. "Alcaraz" or "Over 22.5"'
             className={field}
           />
         </L>
@@ -122,11 +122,11 @@ export function NewBetForm({ tournaments }: { tournaments: Tournament[] }) {
           <input name="stake_pct" inputMode="decimal" required placeholder="2" className={num} />
         </L>
 
-        <L label="Min odd (optional — Disziplin-Limit)" span>
+        <L label="Min odd (optional — discipline floor)" span>
           <input
             name="min_odd"
             inputMode="decimal"
-            placeholder="leer lassen = kein Mindestkurs"
+            placeholder="leave empty = no minimum"
             className={num}
           />
         </L>
@@ -139,20 +139,20 @@ export function NewBetForm({ tournaments }: { tournaments: Tournament[] }) {
             <option value="void">Void</option>
           </select>
         </L>
-        <L label="CLV % (optional, nur belegt)">
-          <input name="clv" inputMode="decimal" placeholder="nach Settlement" className={num} />
+        <L label="CLV % (optional, documented only)">
+          <input name="clv" inputMode="decimal" placeholder="after settlement" className={num} />
         </L>
 
         <L label="Reasoning" span>
           <textarea
             name="reasoning"
             rows={4}
-            placeholder="Ruhig, analytisch. Das Warum hinter dem Pick."
+            placeholder="Calm, analytical. The why behind the pick."
             className={field}
           />
         </L>
 
-        <L label="Bet slip screenshot (optional, Bild ≤ 5 MB)" span>
+        <L label="Bet slip screenshot (optional, image ≤ 5 MB)" span>
           <input
             name="screenshot"
             type="file"

@@ -18,22 +18,29 @@ import {
 function ChartFrame({
   title,
   caption,
+  legend,
   children,
 }: {
   title: string;
   caption: string;
+  legend?: React.ReactNode;
   children: React.ReactNode;
 }) {
   return (
     <div className="card card-emphasis w-full p-4">
-      <div className="mb-2 flex items-center justify-between">
+      <div className="mb-3 flex items-center justify-between gap-3">
         <p className="text-xs font-medium text-muted">{title}</p>
-        <span className="rounded-full border border-warn/30 bg-warn/10 px-2 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-warn">
+        <span className="shrink-0 rounded-full border border-warn/30 bg-warn/10 px-2 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-warn">
           Illustration
         </span>
       </div>
-      <div className="h-44 w-full">{children}</div>
-      <p className="mt-2 text-[11px] leading-relaxed text-faint">{caption}</p>
+
+      {/* chart area — fixed height, holds only the chart */}
+      <div className="h-40 w-full">{children}</div>
+
+      {legend ? <div className="mt-3">{legend}</div> : null}
+
+      <p className="mt-3 text-[11px] leading-relaxed text-faint">{caption}</p>
     </div>
   );
 }
@@ -53,11 +60,21 @@ const DISCIPLINE = [
 export function DisciplineChart() {
   return (
     <ChartFrame
-      title="Mit System vs. aus dem Bauch"
-      caption="Schematische Darstellung: Ein klarer Plan glättet den Verlauf, Bauch-Tipps & Chasing erzeugen Chaos. Keine echten Ergebnisse."
+      title="With a system vs. gut feeling"
+      caption="Schematic: a clear plan smooths the curve; gut bets and chasing create chaos. Not real results."
+      legend={
+        <div className="flex gap-5 text-[11px]">
+          <span className="flex items-center gap-1.5 text-primary-bright">
+            <span className="h-0.5 w-3.5 rounded bg-primary-bright" /> with system
+          </span>
+          <span className="flex items-center gap-1.5 text-neg">
+            <span className="h-0.5 w-3.5 rounded bg-neg" /> without a plan
+          </span>
+        </div>
+      }
     >
       <ResponsiveContainer width="100%" height="100%">
-        <LineChart data={DISCIPLINE} margin={{ top: 8, right: 8, bottom: 0, left: 8 }}>
+        <LineChart data={DISCIPLINE} margin={{ top: 6, right: 6, bottom: 2, left: 6 }}>
           <XAxis dataKey="i" hide />
           <YAxis hide domain={[0, 24]} />
           <Line
@@ -79,40 +96,33 @@ export function DisciplineChart() {
           />
         </LineChart>
       </ResponsiveContainer>
-      <div className="mt-1 flex gap-4 text-[11px]">
-        <span className="flex items-center gap-1.5 text-primary-bright">
-          <span className="h-0.5 w-3 rounded bg-primary-bright" /> mit System
-        </span>
-        <span className="flex items-center gap-1.5 text-neg">
-          <span className="h-0.5 w-3 rounded bg-neg" /> ohne Plan
-        </span>
-      </div>
     </ChartFrame>
   );
 }
 
 // CLV as a single worked example (clearly an example, not a track record).
 const CLV = [
-  { name: "Dein Kurs", v: 1.95, fill: "#a855f7" },
-  { name: "Closing-Kurs", v: 1.82, fill: "#6d28d9" },
+  { name: "Your price", v: 1.95, fill: "#a855f7" },
+  { name: "Closing", v: 1.82, fill: "#6d28d9" },
 ];
 
 export function ClvChart() {
   return (
     <ChartFrame
-      title="Was CLV bedeutet (Beispiel)"
-      caption="Beispiel: Du nimmst 1.95, der Markt schließt bei 1.82 — du hast über dem Schlusskurs eingekauft (CLV+). Genau das misst WaveHub statt Gewinn-Versprechen."
+      title="What CLV means (example)"
+      caption="Example: you take 1.95, the market closes at 1.82 — you beat the closing price (CLV+). That's what WaveHub measures, instead of promising profit."
     >
       <ResponsiveContainer width="100%" height="100%">
-        <BarChart data={CLV} margin={{ top: 8, right: 8, bottom: 0, left: 8 }}>
+        <BarChart data={CLV} margin={{ top: 6, right: 6, bottom: 6, left: 6 }}>
           <XAxis
             dataKey="name"
             tick={{ fill: "#9a93ad", fontSize: 11 }}
+            tickMargin={8}
             axisLine={false}
             tickLine={false}
           />
           <YAxis hide domain={[1.6, 2.0]} />
-          <Bar dataKey="v" radius={[8, 8, 0, 0]} animationDuration={1200}>
+          <Bar dataKey="v" radius={[8, 8, 0, 0]} barSize={70} animationDuration={1200}>
             {CLV.map((d, i) => (
               <Cell key={i} fill={d.fill} />
             ))}

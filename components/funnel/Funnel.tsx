@@ -60,69 +60,65 @@ export function Funnel() {
             exit="exit"
             transition={{ duration: 0.32, ease: "easeOut" }}
           >
-            {step === 0 && (
-              <Hook onNext={next} />
-            )}
+            {step === 0 && <Hook onNext={next} />}
             {step === 1 && (
               <Fact
-                eyebrow="Die ehrliche Wahrheit"
-                title="Die meisten verlieren nicht wegen Pech."
-                text="Sondern wegen fehlendem Plan, Emotionen und dem Nachjagen von Verlusten."
+                eyebrow="The honest truth"
+                title="Most people don't lose to bad luck."
+                text="They lose to no plan, emotion, and chasing their losses."
                 chart={<DisciplineChart />}
                 onNext={next}
               />
             )}
             {step === 2 && (
               <Fact
-                eyebrow="Was Profis anders machen"
-                title="Sie messen CLV — nicht den Gewinn."
-                text="Closing Line Value zeigt, ob du besser als der Markt einkaufst. Ein Qualitäts-Signal, kein Gewinn-Versprechen."
+                eyebrow="What pros do differently"
+                title="They measure CLV — not profit."
+                text="Closing Line Value shows whether you beat the market price. A quality signal, not a profit promise."
                 chart={<ClvChart />}
                 onNext={next}
               />
             )}
             {step === 3 && (
               <Question
-                kicker="Kurze Frage"
-                q="Tippst du manchmal aus dem Bauch heraus?"
-                yesLabel="Ja, kenn ich"
-                noLabel="Eher nicht"
+                kicker="Quick question"
+                q="Do you sometimes bet on gut feeling?"
+                yesLabel="Yes, I know it"
+                noLabel="Not really"
                 onAnswer={answer}
               />
             )}
             {step === 4 && (
               <Question
-                kicker="Und ehrlich:"
-                q="Hast du schon mal Verluste nachgejagt?"
-                yesLabel="Ja, leider"
-                noLabel="Nein"
+                kicker="And honestly:"
+                q="Have you ever chased your losses?"
+                yesLabel="Yes, sadly"
+                noLabel="No"
                 onAnswer={answer}
               />
             )}
             {step === 5 && (
               <Question
-                kicker="Letzte Frage"
-                q="Hättest du gern klare Regeln statt Emotion?"
-                yesLabel="Auf jeden Fall"
-                noLabel="Vielleicht"
+                kicker="Last one"
+                q="Would you like clear rules instead of emotion?"
+                yesLabel="Absolutely"
+                noLabel="Maybe"
                 onAnswer={answer}
               />
             )}
             {step === 6 && <Bridge yes={yes} onNext={next} />}
-            {step === 7 && (
-              <Plans billing={billing} setBilling={setBilling} />
-            )}
+            {step === 7 && <Plans billing={billing} setBilling={setBilling} />}
           </motion.div>
         </AnimatePresence>
       </div>
 
       {/* persistent compliance + login link */}
       <footer className="mt-6 text-center text-[11px] leading-relaxed text-faint">
-        <p>18+ · Glücksspiel kann süchtig machen · Analyse, kein Wettanbieter</p>
+        <p>18+ · Gambling can be addictive · Analysis, not a bookmaker</p>
         <p className="mt-1.5">
-          Schon dabei?{" "}
+          Already a member?{" "}
           <Link href="/login" className="text-primary-bright hover:underline">
-            Einloggen
+            Log in
           </Link>
         </p>
       </footer>
@@ -142,14 +138,14 @@ function Hook({ onNext }: { onNext: () => void }) {
         <Image src="/logo.png" alt="WaveHub" width={96} height={96} priority />
       </div>
       <h1 className="font-display text-3xl font-bold leading-tight tracking-tight text-text">
-        Schluss mit Bauchgefühl.
+        Stop betting on gut feeling.
       </h1>
       <p className="mx-auto mt-3 max-w-xs text-[15px] leading-relaxed text-muted">
-        Tennis-Wetten mit System statt Emotion. In 30 Sekunden findest du heraus,
-        ob WaveHub zu dir passt.
+        Tennis betting with a system, not emotion. In 30 seconds, find out if
+        WaveHub is for you.
       </p>
       <button onClick={onNext} className={`${primaryBtn} mt-8`}>
-        Los geht&apos;s →
+        Let&apos;s go →
       </button>
     </div>
   );
@@ -179,7 +175,7 @@ function Fact({
       <p className="mt-2 text-[14px] leading-relaxed text-muted">{text}</p>
       <div className="mt-5">{chart}</div>
       <button onClick={onNext} className={`${primaryBtn} mt-6`}>
-        Weiter
+        Continue
       </button>
     </div>
   );
@@ -220,17 +216,17 @@ function Question({
 
 function Bridge({ yes, onNext }: { yes: number; onNext: () => void }) {
   const items = [
-    "Klare Picks — mit ruhiger, analytischer Begründung",
-    "Staking-Rechner & Bankroll-Schutz — sagt auch mal: No bet",
-    "CLV-Tracking statt Hype und Gewinn-Versprechen",
+    "Clear picks — with calm, analytical reasoning",
+    "Staking calculator & bankroll protection — it even says: No bet",
+    "CLV tracking instead of hype and profit promises",
   ];
   return (
     <div className="text-center">
       <p className="mono mb-2 text-[10px] uppercase tracking-[1.5px] text-primary-bright">
-        {yes >= 2 ? "Klingt nach dir" : "Genau dafür"}
+        {yes >= 2 ? "Sounds like you" : "Exactly why"}
       </p>
       <h2 className="font-display text-2xl font-bold leading-snug tracking-tight text-text">
-        Genau dafür gibt&apos;s WaveHub.
+        That&apos;s exactly what WaveHub is for.
       </h2>
       <ul className="mt-6 space-y-3 text-left">
         {items.map((t) => (
@@ -244,7 +240,7 @@ function Bridge({ yes, onNext }: { yes: number; onNext: () => void }) {
         ))}
       </ul>
       <button onClick={onNext} className={`${primaryBtn} mt-7`}>
-        Pläne ansehen →
+        See the plans →
       </button>
     </div>
   );
@@ -256,17 +252,27 @@ const PLANS = [
     name: "Core",
     monthly: "€99",
     yearly: "€890",
-    tagline: "Das System & der Feed.",
-    features: ["Daily Bet-Feed (ATP & WTA)", "Match-Insights & Stats", "Staking-Rechner", "CLV-Tracking"],
+    tagline: "The system & the feed.",
+    features: [
+      "Daily bet feed (ATP & WTA)",
+      "Match insights & stats",
+      "Staking calculator",
+      "CLV tracking",
+    ],
     emphasis: false,
   },
   {
     tier: "private",
     name: "Private",
     monthly: "€149",
-    yearly: "€1.390",
-    tagline: "Das System — auf dich zugeschnitten.",
-    features: ["Alles aus Core", "1-zu-1 Analyst, direkte Leitung", "Individueller Staking-Plan", "Priorisierte Begründungen"],
+    yearly: "€1,390",
+    tagline: "The system — tailored to you.",
+    features: [
+      "Everything in Core",
+      "1-on-1 analyst, direct line",
+      "Individually calibrated staking plan",
+      "Prioritised reasoning",
+    ],
     emphasis: true,
   },
 ] as const;
@@ -281,10 +287,10 @@ function Plans({
   return (
     <div>
       <h2 className="text-center font-display text-2xl font-bold tracking-tight text-text">
-        Wähle deinen Start
+        Choose your start
       </h2>
       <p className="mt-1 text-center text-[13px] text-muted">
-        Direkt beitreten — kein Geld wird in der App bewegt.
+        Join directly — no money is moved in the app.
       </p>
 
       <div className="mx-auto mt-4 flex w-fit gap-1 rounded-2xl border border-border bg-surface p-1">
@@ -292,13 +298,13 @@ function Plans({
           <button
             key={b}
             onClick={() => setBilling(b)}
-            className={`rounded-[10px] px-4 py-2 text-[13px] font-semibold transition ${
+            className={`rounded-[10px] px-4 py-2 text-[13px] font-semibold capitalize transition ${
               billing === b
                 ? "bg-gradient-to-br from-primary-deep to-primary text-white"
                 : "text-muted"
             }`}
           >
-            {b === "monthly" ? "Monatlich" : "Jährlich"}
+            {b}
           </button>
         ))}
       </div>
@@ -315,7 +321,7 @@ function Plans({
           >
             {p.emphasis && (
               <span className="mono absolute right-4 top-4 rounded-md border border-primary/30 bg-primary/15 px-2 py-1 text-[9px] font-bold uppercase tracking-widest text-primary-bright">
-                Empfohlen
+                Recommended
               </span>
             )}
             <h3 className="font-display text-xl font-bold text-text">{p.name}</h3>
@@ -325,12 +331,15 @@ function Plans({
                 {billing === "monthly" ? p.monthly : p.yearly}
               </span>
               <span className="text-[13px] text-muted">
-                {billing === "monthly" ? "/Monat" : "/Jahr"}
+                {billing === "monthly" ? "/month" : "/year"}
               </span>
             </div>
             <ul className="my-4 space-y-1.5">
               {p.features.map((f) => (
-                <li key={f} className="flex items-start gap-2.5 text-[13px] text-muted">
+                <li
+                  key={f}
+                  className="flex items-start gap-2.5 text-[13px] text-muted"
+                >
                   <span className="mt-0.5 text-primary-bright">✓</span>
                   {f}
                 </li>
@@ -344,7 +353,7 @@ function Plans({
                   : "w-full rounded-xl border border-border-strong py-3.5 text-sm font-semibold text-text transition active:scale-[0.98]"
               }`}
             >
-              Jetzt beitreten
+              Join now
             </Link>
           </div>
         ))}

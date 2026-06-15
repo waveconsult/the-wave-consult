@@ -169,8 +169,7 @@ function PlanCard({
         </div>
       ) : state.status === "ok" ? (
         <div className="rounded-xl border border-pos/30 bg-pos/10 px-4 py-3 text-center text-[13px] text-pos">
-          Willkommen bei {plan.name}! Dein Zugang ist aktiv — keine Zahlung in
-          der App.
+          Welcome to {plan.name}! Your access is active — no payment in the app.
         </div>
       ) : (
         <form action={formAction}>
@@ -184,7 +183,7 @@ function PlanCard({
                 : "border border-border-strong text-text"
             }`}
           >
-            {pending ? "Einen Moment…" : "Jetzt beitreten"}
+            {pending ? "One moment…" : "Join now"}
           </button>
           {state.status === "error" ? (
             <p className="mt-2 text-center text-xs text-neg">{state.message}</p>

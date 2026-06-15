@@ -17,14 +17,14 @@ export async function joinTier(
 ): Promise<JoinState> {
   const tier = String(formData.get("tier") ?? "");
   if (tier !== "core" && tier !== "private") {
-    return { status: "error", message: "Ungültiger Plan." };
+    return { status: "error", message: "Invalid plan." };
   }
 
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) return { status: "error", message: "Bitte zuerst einloggen." };
+  if (!user) return { status: "error", message: "Please log in first." };
 
   const { error } = await supabase
     .from("profiles")

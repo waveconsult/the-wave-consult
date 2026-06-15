@@ -20,11 +20,11 @@ export default async function SignupPage({
   return (
     <>
       <h1 className="mb-1 font-display text-xl font-semibold text-text">
-        {planLabel ? `Beitreten — ${planLabel}` : "Create your account"}
+        {planLabel ? `Join — ${planLabel}` : "Create your account"}
       </h1>
       <p className="mb-5 text-sm text-muted">
         {planLabel
-          ? "Konto erstellen und direkt loslegen. Keine Zahlung in der App."
+          ? "Create your account and get started right away. No payment in the app."
           : "Access starts with a free account."}
       </p>
       <AuthForm mode="signup" plan={plan} />
