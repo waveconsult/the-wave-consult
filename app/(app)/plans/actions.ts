@@ -1,40 +1,38 @@
 "use server";
 
+import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 
-export type ApplyState =
+export type JoinState =
   | { status: "idle" }
   | { status: "ok"; tier: string }
   | { status: "error"; message: string };
 
-// Apply-first intake (briefing §5.4). Inserts into `applications`. No checkout
-// yet — Stripe is deferred (§12). The operator reviews and grants tier manually.
-export async function applyForTier(
-  _prev: ApplyState,
+// Direct join (briefing §12: Stripe deferred). Sets the signed-in user's tier
+// immediately — no payment yet. When Stripe lands, move tier-setting behind a
+// successful checkout webhook and tighten RLS.
+export async function joinTier(
+  _prev: JoinState,
   formData: FormData,
-): Promise<ApplyState> {
+): Promise<JoinState> {
   const tier = String(formData.get("tier") ?? "");
-  const note = String(formData.get("note") ?? "").trim();
-
   if (tier !== "core" && tier !== "private") {
-    return { status: "error", message: "Invalid plan." };
+    return { status: "error", message: "Ungültiger Plan." };
   }
 
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
+  if (!user) return { status: "error", message: "Bitte zuerst einloggen." };
 
-  if (!user?.email) {
-    return { status: "error", message: "You must be signed in to apply." };
-  }
-
-  const { error } = await supabase.from("applications").insert({
-    email: user.email,
-    requested_tier: tier,
-    note: note || null,
-  });
+  const { error } = await supabase
+    .from("profiles")
+    .update({ tier })
+    .eq("id", user.id);
 
   if (error) return { status: "error", message: error.message };
+
+  revalidatePath("/", "layout");
   return { status: "ok", tier };
 }

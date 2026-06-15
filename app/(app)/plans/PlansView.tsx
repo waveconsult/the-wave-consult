@@ -2,7 +2,7 @@
 
 import { useActionState, useState } from "react";
 import type { Tier } from "@/lib/types";
-import { applyForTier, type ApplyState } from "./actions";
+import { joinTier, type JoinState } from "./actions";
 
 type Billing = "monthly" | "yearly";
 
@@ -86,8 +86,7 @@ export function PlansView({ currentTier }: { currentTier: Tier }) {
 
       <p className="mx-2 mt-1 text-center text-[13px] leading-relaxed text-faint">
         Private differentiates through personalization — not through more betting
-        volume. Access is granted by application; there is no checkout in the app
-        and no money is processed here.
+        volume. No money is processed in the app.
       </p>
     </>
   );
@@ -118,8 +117,8 @@ function PlanCard({
   billing: Billing;
   currentTier: Tier;
 }) {
-  const [state, formAction, pending] = useActionState<ApplyState, FormData>(
-    applyForTier,
+  const [state, formAction, pending] = useActionState<JoinState, FormData>(
+    joinTier,
     { status: "idle" },
   );
   const price = billing === "monthly" ? plan.monthly : plan.yearly;
@@ -170,8 +169,8 @@ function PlanCard({
         </div>
       ) : state.status === "ok" ? (
         <div className="rounded-xl border border-pos/30 bg-pos/10 px-4 py-3 text-center text-[13px] text-pos">
-          Application received. The analyst will be in touch — no payment is
-          taken here.
+          Willkommen bei {plan.name}! Dein Zugang ist aktiv — keine Zahlung in
+          der App.
         </div>
       ) : (
         <form action={formAction}>
@@ -185,7 +184,7 @@ function PlanCard({
                 : "border border-border-strong text-text"
             }`}
           >
-            {pending ? "Submitting…" : `Apply with ${plan.name.replace("Wave ", "")}`}
+            {pending ? "Einen Moment…" : "Jetzt beitreten"}
           </button>
           {state.status === "error" ? (
             <p className="mt-2 text-center text-xs text-neg">{state.message}</p>

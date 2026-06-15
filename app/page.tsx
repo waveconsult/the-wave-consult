@@ -1,7 +1,11 @@
 import { redirect } from "next/navigation";
+import { getProfile } from "@/lib/auth";
+import { Funnel } from "@/components/funnel/Funnel";
 
-// Entry point. Authed users land on the Bets feed; proxy.ts bounces
-// unauthenticated visitors to /login.
-export default function Home() {
-  redirect("/bets");
+// Entry point. Logged-in users go to the feed; logged-out visitors see the
+// public quiz funnel (after the intro animation).
+export default async function Home() {
+  const profile = await getProfile();
+  if (profile) redirect("/bets");
+  return <Funnel />;
 }
