@@ -25,11 +25,6 @@ function ChartFrame({
 }) {
   return (
     <div className="card card-emphasis w-full p-4">
-      <div className="mb-3 flex items-center justify-end">
-        <span className="rounded-full border border-warn/30 bg-warn/10 px-2 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-warn">
-          Illustration
-        </span>
-      </div>
       <div className="h-40 w-full">{children}</div>
       {legend ? <div className="mt-3">{legend}</div> : null}
       <p className="mt-3 text-[11px] leading-relaxed text-faint">{caption}</p>

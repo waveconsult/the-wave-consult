@@ -88,7 +88,6 @@ export function Funnel() {
       </div>
 
       <footer className="mt-7 text-center text-[11px] leading-relaxed text-faint">
-        <p>18+ · Gambling can be addictive · Analysis, not a bookmaker</p>
         <p className="mt-1.5">
           Already a member?{" "}
           <Link href="/login" className="text-primary-bright hover:underline">
@@ -111,13 +110,12 @@ function Hook({ onNext }: { onNext: () => void }) {
       <div className="mx-auto mb-7 w-fit">
         <Image src="/logo.png" alt="WaveHub" width={104} height={104} priority />
       </div>
-      <h1 className="font-display text-[34px] font-bold leading-[1.1] tracking-tight text-text">
-        Turn bad habits
-        <br />
-        into a lasting edge.
+      <h1 className="font-display text-[32px] font-bold leading-[1.1] tracking-tight text-text">
+        Turn bad habits into a{" "}
+        <span className="text-primary-bright">high income skill</span>.
       </h1>
-      <p className="mx-auto mt-4 max-w-[15rem] text-[15px] leading-relaxed text-muted">
-        Tennis, with a system — not emotion.
+      <p className="mx-auto mt-4 max-w-[16rem] text-[15px] leading-relaxed text-muted">
+        Real ATP analysis — early to the market, more discipline, no hype.
       </p>
       <button onClick={onNext} className={`${primaryBtn} mt-9`}>
         Start

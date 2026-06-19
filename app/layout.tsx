@@ -32,7 +32,7 @@ export const metadata: Metadata = {
     template: "%s · WaveHub",
   },
   description:
-    "A tennis betting analysis tool. Discipline and Closing Line Value over hype. ATP & WTA analysis only — no wagers are taken or processed. 18+. Gamble responsibly.",
+    "Turn bad habits into a high income skill. Real ATP analysis, early to the market — discipline and Closing Line Value over hype.",
   manifest: "/manifest.json",
   appleWebApp: {
     capable: true,

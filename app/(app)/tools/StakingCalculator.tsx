@@ -88,7 +88,7 @@ export function StakingCalculator({
       </div>
 
       <p className="mx-1 mt-1 text-[12px] leading-relaxed text-faint">
-        Capped at 3% of bankroll. Estimates only — not a profit promise.
+        A precise budget for every bet, capped at 3% of bankroll.
       </p>
     </>
   );

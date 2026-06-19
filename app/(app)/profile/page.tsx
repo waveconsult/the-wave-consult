@@ -3,7 +3,6 @@ import type { Metadata } from "next";
 import { requireProfile } from "@/lib/auth";
 import { getTrackRecord } from "@/lib/data";
 import { euro } from "@/lib/format";
-import { ResponsibleGamblingBanner } from "@/components/ResponsibleGambling";
 import { RiskManagementForm } from "./RiskManagementForm";
 import { ChangePasswordForm } from "./ChangePasswordForm";
 import { signout } from "@/app/(auth)/actions";
@@ -104,11 +103,7 @@ export default async function ProfilePage() {
         </>
       ) : null}
 
-      <div className="mt-5">
-        <ResponsibleGamblingBanner />
-      </div>
-
-      <form action={signout} className="mt-4">
+      <form action={signout} className="mt-6">
         <button
           type="submit"
           className="w-full rounded-xl border border-border-strong py-2.5 text-sm font-medium text-muted transition hover:text-text"
@@ -118,9 +113,7 @@ export default async function ProfilePage() {
       </form>
 
       <p className="mt-4 text-center text-[10px] leading-relaxed text-faint">
-        WaveHub · Tennis betting analysis
-        <br />
-        No profit guarantees · 18+
+        WaveHub · wavehubtennis.com
       </p>
     </>
   );
