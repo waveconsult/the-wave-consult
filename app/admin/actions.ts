@@ -84,14 +84,21 @@ export async function createBet(
   }
   if (!VALID_STATUS.includes(status)) return { error: "Invalid status." };
 
-  // Validate the optional screenshot before inserting.
+  // Validate the optional attachment before inserting (image OR PDF).
   const file = formData.get("screenshot");
   const hasFile = file instanceof File && file.size > 0;
-  if (hasFile) {
-    if (!file.type.startsWith("image/"))
-      return { error: "Screenshot must be an image." };
-    if (file.size > MAX_BYTES)
-      return { error: "Screenshot must be 5 MB or smaller." };
+  if (hasFile && file instanceof File) {
+    const isImage = file.type.startsWith("image/");
+    const isPdf = file.type === "application/pdf";
+    if (!isImage && !isPdf)
+      return { error: "Attachment must be an image or a PDF." };
+    const cap = isPdf ? MAX_PDF_BYTES : MAX_BYTES;
+    if (file.size > cap)
+      return {
+        error: isPdf
+          ? "PDF must be 20 MB or smaller."
+          : "Image must be 5 MB or smaller.",
+      };
   }
 
   const { data: inserted, error: insertErr } = await supabase
@@ -184,7 +191,7 @@ export async function createInsight(
   if (error) return { error: error.message };
 
   revalidatePath("/", "layout");
-  redirect("/bets?view=insights");
+  redirect("/bets");
 }
 
 // ---- Delete a bet (admin, from the feed) ----

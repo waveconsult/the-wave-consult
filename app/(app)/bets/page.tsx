@@ -5,34 +5,59 @@ import { getBets, getInsights, getTournamentById } from "@/lib/data";
 import { BetCard } from "@/components/BetCard";
 import { InsightCard } from "@/components/InsightCard";
 import { PageHeader } from "@/components/PageHeader";
-import { SegmentedToggle } from "./SegmentedToggle";
+import type { BetWithMeta, InsightWithMeta } from "@/lib/types";
 
 export const metadata: Metadata = { title: "Bets" };
+
+// One combined feed: bets and match insights together, newest first.
+type FeedItem =
+  | { kind: "bet"; at: number; bet: BetWithMeta }
+  | { kind: "insight"; at: number; insight: InsightWithMeta };
 
 // searchParams is async in Next.js 16.
 export default async function BetsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ view?: string; tournament?: string }>;
+  searchParams: Promise<{ tournament?: string }>;
 }) {
   const profile = await requireProfile();
-  const { view, tournament } = await searchParams;
-  const isInsights = view === "insights";
+  const { tournament } = await searchParams;
 
   const activeTournament = tournament
     ? await getTournamentById(tournament)
     : null;
 
+  const [bets, insights] = await Promise.all([
+    getBets(tournament),
+    getInsights(),
+  ]);
+
+  // When a tournament filter is active, scope the insights to it too.
+  const scopedInsights = tournament
+    ? insights.filter((i) => i.tournament_id === tournament)
+    : insights;
+
+  const feed: FeedItem[] = [
+    ...bets.map((b) => ({
+      kind: "bet" as const,
+      at: new Date(b.published_at).getTime(),
+      bet: b,
+    })),
+    ...scopedInsights.map((i) => ({
+      kind: "insight" as const,
+      at: new Date(i.published_at).getTime(),
+      insight: i,
+    })),
+  ].sort((a, b) => b.at - a.at);
+
   return (
     <>
-      <PageHeader title={isInsights ? "Insights" : "Bets"} />
-
-      <SegmentedToggle view={isInsights ? "insights" : "bets"} />
+      <PageHeader title="Bets" />
 
       {activeTournament ? (
         <div className="mb-3.5">
           <Link
-            href={isInsights ? "/bets?view=insights" : "/bets"}
+            href="/bets"
             className="inline-flex items-center gap-2 rounded-[10px] border border-primary/30 bg-primary/12 px-3 py-1.5 text-xs font-semibold text-primary-bright"
           >
             {activeTournament.country_flag} {activeTournament.name} ✕
@@ -40,66 +65,28 @@ export default async function BetsPage({
         </div>
       ) : null}
 
-      {isInsights ? (
-        <InsightsList />
-      ) : (
-        <BetsList
-          bankroll={profile.bankroll}
-          tournamentId={tournament}
-          isAdmin={profile.role === "admin"}
+      {feed.length === 0 ? (
+        <EmptyState
+          title="Nothing published yet"
+          body="When the analyst publishes a pick or a match read, it appears here with stake %, your stake amount, and the discipline floor."
         />
+      ) : (
+        <div className="space-y-4">
+          {feed.map((item) =>
+            item.kind === "bet" ? (
+              <BetCard
+                key={`b-${item.bet.id}`}
+                bet={item.bet}
+                bankroll={profile.bankroll}
+                isAdmin={profile.role === "admin"}
+              />
+            ) : (
+              <InsightCard key={`i-${item.insight.id}`} insight={item.insight} />
+            ),
+          )}
+        </div>
       )}
     </>
-  );
-}
-
-async function BetsList({
-  bankroll,
-  tournamentId,
-  isAdmin,
-}: {
-  bankroll: number;
-  tournamentId?: string;
-  isAdmin: boolean;
-}) {
-  const bets = await getBets(tournamentId);
-
-  if (bets.length === 0) {
-    return (
-      <EmptyState
-        title="No bets published yet"
-        body="When the analyst publishes a pick, it appears here with stake %, your stake amount, and the discipline floor."
-      />
-    );
-  }
-
-  return (
-    <div className="space-y-4">
-      {bets.map((bet) => (
-        <BetCard key={bet.id} bet={bet} bankroll={bankroll} isAdmin={isAdmin} />
-      ))}
-    </div>
-  );
-}
-
-async function InsightsList() {
-  const insights = await getInsights();
-
-  if (insights.length === 0) {
-    return (
-      <EmptyState
-        title="No insights yet"
-        body="Match analysis — the reasoning behind the calls — will appear here."
-      />
-    );
-  }
-
-  return (
-    <div className="space-y-4">
-      {insights.map((insight) => (
-        <InsightCard key={insight.id} insight={insight} />
-      ))}
-    </div>
   );
 }
 

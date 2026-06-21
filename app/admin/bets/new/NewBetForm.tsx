@@ -152,11 +152,11 @@ export function NewBetForm({ tournaments }: { tournaments: Tournament[] }) {
           />
         </L>
 
-        <L label="Bet slip screenshot (optional, image ≤ 5 MB)" span>
+        <L label="Bet slip — screenshot or PDF (optional · image ≤ 5 MB, PDF ≤ 20 MB)" span>
           <input
             name="screenshot"
             type="file"
-            accept="image/*"
+            accept="image/*,application/pdf"
             className="block w-full text-sm text-muted file:mr-3 file:rounded-lg file:border-0 file:bg-surface-2 file:px-3 file:py-2 file:text-sm file:text-text"
           />
         </L>
