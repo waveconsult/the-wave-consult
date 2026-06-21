@@ -11,7 +11,7 @@ import { DisciplineChart, DeclineChart } from "./Infographics";
 // → trust (member DMs) → plans (Free / Premium). Value-first framing, no
 // profit promises.
 
-const STEPS = 9;
+const STEPS = 11;
 
 const slide = {
   enter: { opacity: 0, x: 32 },
@@ -84,7 +84,11 @@ export function Funnel() {
             )}
             {step === 6 && <Bridge yes={yes} onNext={next} />}
             {step === 7 && <Trust onNext={next} />}
-            {step === 8 && <Plans />}
+            {step === 8 && <CaseStudy data={CASES[0]} index={1} onNext={next} />}
+            {step === 9 && (
+              <CaseStudy data={CASES[1]} index={2} last onNext={next} />
+            )}
+            {step === 10 && <Plans />}
           </motion.div>
         </AnimatePresence>
       </div>
@@ -284,17 +288,85 @@ function Trust({ onNext }: { onNext: () => void }) {
         ))}
       </div>
       <button onClick={onNext} className={`${primaryBtn} mt-7`}>
-        See plans
+        Continue
       </button>
     </div>
   );
 }
 
-const FREE = {
-  name: "Free",
-  price: "€0",
-  features: ["Browse the bet feed", "Match insights", "Staking calculator"],
-};
+// Placeholder case studies — replace with real member stories/screenshots.
+const CASES = [
+  {
+    initials: "MK",
+    name: "Marc K.",
+    meta: "Core member · since January",
+    headline: "From chasing losses to a system.",
+    before: "Bet on gut feeling, chased every loss, no plan.",
+    after: "A few structured ATP picks a week, value on each, no chasing.",
+    quote: "The no-bet calls were the turning point. I finally stopped forcing it.",
+  },
+  {
+    initials: "TS",
+    name: "Tom S.",
+    meta: "Private member · since March",
+    headline: "Discipline over volume.",
+    before: "Too many bets, random stakes, big swings.",
+    after: "Fewer, sharper picks and a fixed staking plan.",
+    quote: "I bet a third as often now and actually think about each one.",
+  },
+];
+
+function CaseStudy({
+  data,
+  index,
+  last = false,
+  onNext,
+}: {
+  data: (typeof CASES)[number];
+  index: number;
+  last?: boolean;
+  onNext: () => void;
+}) {
+  return (
+    <div>
+      <p className="mono mb-2 text-center text-[10px] uppercase tracking-[2px] text-primary-bright">
+        Case study {index} of 2
+      </p>
+      <h2 className="text-center font-display text-[26px] font-bold leading-[1.2] tracking-tight text-text">
+        {data.headline}
+      </h2>
+      <div className="card mt-6 p-4 text-left">
+        <div className="flex items-center gap-3">
+          <span className="h-11 w-11 rounded-full bg-gradient-to-br from-primary-bright to-primary-deep p-[2px]">
+            <span className="flex h-full w-full items-center justify-center rounded-full bg-surface-2 font-display text-[13px] font-bold text-text">
+              {data.initials}
+            </span>
+          </span>
+          <div>
+            <p className="text-[14px] font-semibold text-text">{data.name}</p>
+            <p className="text-[11px] text-faint">{data.meta}</p>
+          </div>
+        </div>
+        <div className="mt-4 grid grid-cols-2 gap-2">
+          <div className="rounded-xl border border-border bg-surface-2 p-3">
+            <p className="mono text-[9px] uppercase tracking-wide text-faint">Before</p>
+            <p className="mt-1 text-[12.5px] leading-snug text-muted">{data.before}</p>
+          </div>
+          <div className="rounded-xl border border-primary/25 bg-primary/[0.08] p-3">
+            <p className="mono text-[9px] uppercase tracking-wide text-primary-bright">After</p>
+            <p className="mt-1 text-[12.5px] leading-snug text-text">{data.after}</p>
+          </div>
+        </div>
+        <p className="mt-3.5 text-[13px] leading-relaxed text-muted">
+          &ldquo;{data.quote}&rdquo;
+        </p>
+      </div>
+      <button onClick={onNext} className={`${primaryBtn} mt-7`}>
+        {last ? "See plans" : "Next story"}
+      </button>
+    </div>
+  );
+}
 const PREMIUM = [
   {
     tier: "core",
@@ -319,96 +391,54 @@ const PREMIUM = [
 ] as const;
 
 function Plans() {
-  const [tab, setTab] = useState<"premium" | "free">("premium");
-
   return (
     <div>
       <h2 className="text-center font-display text-[26px] font-bold tracking-tight text-text">
         Choose your start
       </h2>
 
-      <div className="mx-auto mt-5 flex w-full gap-1 rounded-2xl border border-border bg-surface p-1">
-        {(["premium", "free"] as const).map((t) => (
-          <button
-            key={t}
-            onClick={() => setTab(t)}
-            className={`flex-1 rounded-[10px] py-2.5 text-[13px] font-semibold capitalize transition ${
-              tab === t
-                ? "bg-gradient-to-br from-primary-deep to-primary text-white"
-                : "text-muted"
+      <div className="mt-5 space-y-3.5">
+        {PREMIUM.map((p) => (
+          <div
+            key={p.tier}
+            className={`relative overflow-hidden rounded-[20px] border p-5 ${
+              p.emphasis
+                ? "border-primary/40 bg-[linear-gradient(170deg,rgba(109,40,217,0.14),transparent_70%)]"
+                : "border-border"
             }`}
           >
-            {t}
-          </button>
-        ))}
-      </div>
-
-      {tab === "premium" ? (
-        <div className="mt-4 space-y-3.5">
-          {PREMIUM.map((p) => (
-            <div
-              key={p.tier}
-              className={`relative overflow-hidden rounded-[20px] border p-5 ${
-                p.emphasis
-                  ? "border-primary/40 bg-[linear-gradient(170deg,rgba(109,40,217,0.14),transparent_70%)]"
-                  : "border-border"
-              }`}
-            >
-              {p.emphasis && (
-                <span className="mono absolute right-4 top-4 rounded-md border border-primary/30 bg-primary/15 px-2 py-1 text-[9px] font-bold uppercase tracking-widest text-primary-bright">
-                  Recommended
-                </span>
-              )}
-              <h3 className="font-display text-xl font-bold text-text">{p.name}</h3>
-              <p className="mt-1 text-xs text-muted">{p.tagline}</p>
-              <div className="mt-3 flex items-baseline gap-1.5">
-                <span className="mono text-[30px] font-bold text-text">{p.price}</span>
-                <span className="text-[13px] text-muted">/year</span>
-              </div>
-              <ul className="my-4 space-y-1.5">
-                {p.features.map((f) => (
-                  <li key={f} className="flex items-start gap-2.5 text-[13px] text-muted">
-                    <span className="mt-0.5 text-primary-bright">✓</span>
-                    {f}
-                  </li>
-                ))}
-              </ul>
-              <Link
-                href={`/signup?plan=${p.tier}`}
-                className={`block text-center ${
-                  p.emphasis
-                    ? primaryBtn
-                    : "w-full rounded-xl border border-border-strong py-3.5 text-sm font-semibold text-text transition active:scale-[0.98]"
-                }`}
-              >
-                Join now
-              </Link>
-            </div>
-          ))}
-        </div>
-      ) : (
-        <div className="mt-4">
-          <div className="rounded-[20px] border border-border p-5">
-            <h3 className="font-display text-xl font-bold text-text">{FREE.name}</h3>
-            <p className="mt-1 text-xs text-muted">Start without a subscription.</p>
+            {p.emphasis && (
+              <span className="mono absolute right-4 top-4 rounded-md border border-primary/30 bg-primary/15 px-2 py-1 text-[9px] font-bold uppercase tracking-widest text-primary-bright">
+                Recommended
+              </span>
+            )}
+            <h3 className="font-display text-xl font-bold text-text">{p.name}</h3>
+            <p className="mt-1 text-xs text-muted">{p.tagline}</p>
             <div className="mt-3 flex items-baseline gap-1.5">
-              <span className="mono text-[30px] font-bold text-text">{FREE.price}</span>
-              <span className="text-[13px] text-muted">forever</span>
+              <span className="mono text-[30px] font-bold text-text">{p.price}</span>
+              <span className="text-[13px] text-muted">/year</span>
             </div>
             <ul className="my-4 space-y-1.5">
-              {FREE.features.map((f) => (
+              {p.features.map((f) => (
                 <li key={f} className="flex items-start gap-2.5 text-[13px] text-muted">
                   <span className="mt-0.5 text-primary-bright">✓</span>
                   {f}
                 </li>
               ))}
             </ul>
-            <Link href="/signup" className={primaryBtn + " block text-center"}>
-              Join free
+            <Link
+              href={`/signup?plan=${p.tier}`}
+              className={`block text-center ${
+                p.emphasis
+                  ? primaryBtn
+                  : "w-full rounded-xl border border-border-strong py-3.5 text-sm font-semibold text-text transition active:scale-[0.98]"
+              }`}
+            >
+              Join now
             </Link>
           </div>
-        </div>
-      )}
+        ))}
+      </div>
 
       <div className="mt-4 text-center">
         <Link href="/signup" className="text-[12px] text-faint underline-offset-2 hover:text-muted hover:underline">
