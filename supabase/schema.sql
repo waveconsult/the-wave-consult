@@ -41,6 +41,7 @@ create table public.tournaments (
 create table public.bets (
   id uuid primary key default gen_random_uuid(),
   tournament_id uuid references public.tournaments(id) on delete set null,
+  tournament_name text,                 -- free-text event name (typed on the form)
   match text not null,
   round text,
   selection text not null,
@@ -60,9 +61,11 @@ create table public.bets (
 create table public.insights (
   id uuid primary key default gen_random_uuid(),
   tournament_id uuid references public.tournaments(id) on delete set null,
-  title text not null,                  -- e.g. 'Auger — Majchrzak'
+  tournament_name text,                 -- free-text event name (typed on the form)
+  title text not null,                  -- e.g. 'Auger vs Majchrzak'
   body text not null,
   stats jsonb,                          -- optional: [{player,w,ue,tt,ratio}]
+  screenshot_path text,                 -- optional image/PDF attachment in 'bet-shots'
   published_at timestamptz not null default now(),
   created_by uuid references auth.users(id)
 );

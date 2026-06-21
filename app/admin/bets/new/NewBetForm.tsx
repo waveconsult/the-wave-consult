@@ -2,7 +2,6 @@
 
 import { useActionState, useState } from "react";
 import { createBet, type AdminState } from "@/app/admin/actions";
-import type { Tournament } from "@/lib/types";
 
 const field =
   "w-full rounded-xl border border-border bg-surface px-3.5 py-2.5 text-sm text-text outline-none transition focus:border-primary-bright focus:ring-2 focus:ring-primary/30";
@@ -35,7 +34,7 @@ function L({
   );
 }
 
-export function NewBetForm({ tournaments }: { tournaments: Tournament[] }) {
+export function NewBetForm() {
   const [state, formAction, pending] = useActionState<AdminState, FormData>(
     createBet,
     null,
@@ -58,16 +57,12 @@ export function NewBetForm({ tournaments }: { tournaments: Tournament[] }) {
       </div>
 
       <div className="grid grid-cols-2 gap-3">
-        <L label="Tournament (current & upcoming)" span>
-          <select name="tournament_id" defaultValue="" className={field}>
-            <option value="">— none —</option>
-            {tournaments.map((t) => (
-              <option key={t.id} value={t.id}>
-                {t.country_flag ? `${t.country_flag} ` : ""}
-                {t.name}
-              </option>
-            ))}
-          </select>
+        <L label="Tournament (type it in)" span>
+          <input
+            name="tournament_name"
+            placeholder="e.g. Halle Open"
+            className={field}
+          />
         </L>
 
         <L label="Match" span>

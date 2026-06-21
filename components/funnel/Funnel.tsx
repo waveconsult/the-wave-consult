@@ -8,9 +8,10 @@ import { DisciplineChart, DeclineChart } from "./Infographics";
 
 // Public quiz-funnel for logged-out visitors (after the intro): hook → two
 // problem-agitation facts w/ infographics → honest yes-ladder → branded bridge
-// → plans (Free / Premium). Compliance: process framing, no profit promises.
+// → trust (member DMs) → plans (Free / Premium). Value-first framing, no
+// profit promises.
 
-const STEPS = 8;
+const STEPS = 9;
 
 const slide = {
   enter: { opacity: 0, x: 32 },
@@ -59,7 +60,7 @@ export function Funnel() {
             {step === 1 && (
               <Fact
                 eyebrow="The truth"
-                title="Most people don't lose to bad luck — they lose to systemless chaos."
+                title="Most people don't lose to bad luck. They lose to systemless chaos."
                 chart={<DisciplineChart />}
                 onNext={next}
               />
@@ -67,7 +68,7 @@ export function Funnel() {
             {step === 2 && (
               <Fact
                 eyebrow="The consequence"
-                title="Without a system, there's only one way to go — down."
+                title="Without a system, there's only one way to go. Down."
                 chart={<DeclineChart />}
                 onNext={next}
               />
@@ -82,7 +83,8 @@ export function Funnel() {
               <Question kicker="Last one" q="Want clear rules instead of emotion?" yesLabel="Absolutely" noLabel="Maybe" onAnswer={answer} />
             )}
             {step === 6 && <Bridge yes={yes} onNext={next} />}
-            {step === 7 && <Plans />}
+            {step === 7 && <Trust onNext={next} />}
+            {step === 8 && <Plans />}
           </motion.div>
         </AnimatePresence>
       </div>
@@ -115,7 +117,7 @@ function Hook({ onNext }: { onNext: () => void }) {
         <span className="text-primary-bright">high income skill</span>.
       </h1>
       <p className="mx-auto mt-4 max-w-[16rem] text-[15px] leading-relaxed text-muted">
-        Real ATP analysis — early to the market, more discipline, no hype.
+        Real ATP analysis, early to the market. More discipline, less noise.
       </p>
       <button onClick={onNext} className={`${primaryBtn} mt-9`}>
         Start
@@ -189,14 +191,14 @@ const ICONS = {
     <path d="M12 12m-9 0a9 9 0 1 0 18 0a9 9 0 1 0-18 0M12 12m-4 0a4 4 0 1 0 8 0a4 4 0 1 0-8 0M12 12h.01" />
   ),
   shield: <path d="M12 3l8 3v5c0 5-3.4 8.5-8 10-4.6-1.5-8-5-8-10V6l8-3Z" />,
-  pulse: <path d="M3 12h4l2-6 4 12 2-6h6" />,
+  trend: <path d="M3 17l6-6 4 4 8-8M17 7h4v4" />,
 };
 
 function Bridge({ yes, onNext }: { yes: number; onNext: () => void }) {
   const items = [
-    { icon: ICONS.target, title: "Clear picks", text: "Calm, analytical reasoning — no hype." },
+    { icon: ICONS.trend, title: "Value first", text: "A price higher than the matchup deserves. That gap is the edge." },
+    { icon: ICONS.target, title: "Clear picks", text: "Calm, analytical reasoning. No hype, no noise." },
     { icon: ICONS.shield, title: "Bankroll discipline", text: "A staking system that even says: No bet." },
-    { icon: ICONS.pulse, title: "CLV tracking", text: "A quality signal — proof over promises." },
   ];
   return (
     <div className="text-center">
@@ -225,7 +227,64 @@ function Bridge({ yes, onNext }: { yes: number; onNext: () => void }) {
         ))}
       </div>
       <button onClick={onNext} className={`${primaryBtn} mt-7`}>
-        See plans →
+        Continue
+      </button>
+    </div>
+  );
+}
+
+// Social proof. Placeholder DMs — replace the text/handles/initials with real
+// testimonial screenshots when available.
+const DMS = [
+  { initials: "MK", handle: "marc_kln", msg: "the no-bet calls changed it for me. finally stopped chasing every match 🙏" },
+  { initials: "TS", handle: "tom.serves", msg: "the staking plan alone is worth it. way more disciplined now" },
+  { initials: "VK", handle: "value.kev", msg: "didn't get value betting before. now I check the fair price every time 👀" },
+];
+
+function Trust({ onNext }: { onNext: () => void }) {
+  return (
+    <div>
+      <h2 className="text-center font-display text-[26px] font-bold leading-[1.2] tracking-tight text-text">
+        What members are saying.
+      </h2>
+      <p className="mx-auto mt-2 max-w-[18rem] text-center text-[13px] leading-relaxed text-muted">
+        Real messages from inside the community.
+      </p>
+      <div className="mt-6 space-y-3">
+        {DMS.map((d) => (
+          <div key={d.handle} className="rounded-2xl border border-border bg-surface p-3.5">
+            <div className="flex items-center gap-2.5">
+              <span className="h-9 w-9 rounded-full bg-gradient-to-br from-primary-bright to-primary-deep p-[2px]">
+                <span className="flex h-full w-full items-center justify-center rounded-full bg-surface-2 font-display text-[11px] font-bold text-text">
+                  {d.initials}
+                </span>
+              </span>
+              <div className="min-w-0">
+                <p className="text-[13px] font-semibold leading-tight text-text">{d.handle}</p>
+                <p className="text-[10px] text-faint">@{d.handle}</p>
+              </div>
+              <span className="ml-auto text-faint">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6">
+                  <rect x="3" y="3" width="18" height="18" rx="5" />
+                  <circle cx="12" cy="12" r="4" />
+                  <circle cx="17.5" cy="6.5" r="1" fill="currentColor" stroke="none" />
+                </svg>
+              </span>
+            </div>
+            <p className="mt-2.5 rounded-2xl rounded-bl-sm border border-border bg-surface-2 px-3 py-2 text-[12.5px] leading-relaxed text-text">
+              {d.msg}
+            </p>
+            <p className="mt-1.5 flex items-center gap-1.5 text-[10px] text-faint">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" className="text-neg">
+                <path d="M12 21s-7-4.5-9.5-9C1 9 2.5 5.5 6 5.5c2 0 3 1 4 2.5 1-1.5 2-2.5 4-2.5 3.5 0 5 3.5 3.5 6.5C19 16.5 12 21 12 21Z" />
+              </svg>
+              Liked · Seen
+            </p>
+          </div>
+        ))}
+      </div>
+      <button onClick={onNext} className={`${primaryBtn} mt-7`}>
+        See plans
       </button>
     </div>
   );
@@ -242,7 +301,7 @@ const PREMIUM = [
     name: "Core",
     price: "€479",
     tagline: "The system & the feed.",
-    features: ["Daily bet feed (ATP)", "Match insights & stats", "CLV tracking"],
+    features: ["Daily bet feed (ATP)", "Match insights & stats", "Value on every pick"],
     emphasis: false,
   },
   {

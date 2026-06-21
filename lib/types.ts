@@ -35,6 +35,7 @@ export interface Tournament {
 export interface Bet {
   id: string;
   tournament_id: string | null;
+  tournament_name: string | null;
   match: string;
   round: string | null;
   selection: string;
@@ -61,9 +62,11 @@ export interface InsightStatRow {
 export interface Insight {
   id: string;
   tournament_id: string | null;
+  tournament_name: string | null;
   title: string;
   body: string;
   stats: InsightStatRow[] | null;
+  screenshot_path: string | null;
   published_at: string;
   created_by: string | null;
 }
@@ -97,4 +100,5 @@ export interface BetWithMeta extends Bet {
 
 export interface InsightWithMeta extends Insight {
   tournament?: Pick<Tournament, "name" | "country_flag"> | null;
+  screenshot_url?: string | null;
 }

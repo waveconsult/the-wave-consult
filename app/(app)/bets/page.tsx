@@ -81,7 +81,11 @@ export default async function BetsPage({
                 isAdmin={profile.role === "admin"}
               />
             ) : (
-              <InsightCard key={`i-${item.insight.id}`} insight={item.insight} />
+              <InsightCard
+                key={`i-${item.insight.id}`}
+                insight={item.insight}
+                isAdmin={profile.role === "admin"}
+              />
             ),
           )}
         </div>

@@ -91,7 +91,15 @@ export async function getInsights(): Promise<InsightWithMeta[]> {
     .from("insights")
     .select("*, tournament:tournaments(name, country_flag)")
     .order("published_at", { ascending: false });
-  return (data as InsightWithMeta[]) ?? [];
+  const insights = (data as InsightWithMeta[]) ?? [];
+
+  // Resolve attachments (signed URLs when the bucket is private), same as bets.
+  return Promise.all(
+    insights.map(async (i) => ({
+      ...i,
+      screenshot_url: await resolveScreenshot(supabase, i.screenshot_path),
+    })),
+  );
 }
 
 // Real track record from SETTLED picks (won/lost) published since `sinceISO`.

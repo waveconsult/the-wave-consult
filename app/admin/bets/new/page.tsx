@@ -1,13 +1,10 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { getTournaments } from "@/lib/data";
 import { NewBetForm } from "./NewBetForm";
 
 export const metadata: Metadata = { title: "New Bet" };
 
-export default async function NewBetPage() {
-  const tournaments = await getTournaments({ upcomingOnly: true });
-
+export default function NewBetPage() {
   return (
     <div className="space-y-4">
       <div>
@@ -18,7 +15,7 @@ export default async function NewBetPage() {
           New Bet
         </h1>
       </div>
-      <NewBetForm tournaments={tournaments} />
+      <NewBetForm />
     </div>
   );
 }

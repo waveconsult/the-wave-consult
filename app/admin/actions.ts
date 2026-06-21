@@ -104,7 +104,8 @@ export async function createBet(
   const { data: inserted, error: insertErr } = await supabase
     .from("bets")
     .insert({
-      tournament_id: nullable(str(formData.get("tournament_id"))),
+      tournament_id: null,
+      tournament_name: nullable(str(formData.get("tournament_name"))),
       match,
       round: nullable(str(formData.get("round"))),
       selection,
@@ -180,15 +181,54 @@ export async function createInsight(
     }
   }
 
-  const { error } = await supabase.from("insights").insert({
-    tournament_id: nullable(str(formData.get("tournament_id"))),
-    title,
-    body,
-    stats,
-    created_by: user.id,
-  });
+  // Validate the optional attachment before inserting (image OR PDF).
+  const file = formData.get("screenshot");
+  const hasFile = file instanceof File && file.size > 0;
+  if (hasFile && file instanceof File) {
+    const isImage = file.type.startsWith("image/");
+    const isPdf = file.type === "application/pdf";
+    if (!isImage && !isPdf)
+      return { error: "Attachment must be an image or a PDF." };
+    const cap = isPdf ? MAX_PDF_BYTES : MAX_BYTES;
+    if (file.size > cap)
+      return {
+        error: isPdf
+          ? "PDF must be 20 MB or smaller."
+          : "Image must be 5 MB or smaller.",
+      };
+  }
 
-  if (error) return { error: error.message };
+  const { data: inserted, error } = await supabase
+    .from("insights")
+    .insert({
+      tournament_id: null,
+      tournament_name: nullable(str(formData.get("tournament_name"))),
+      title,
+      body,
+      stats,
+      created_by: user.id,
+    })
+    .select("id")
+    .single();
+
+  if (error || !inserted) return { error: error?.message ?? "Insert failed." };
+
+  // Upload the attachment → storage, then store its path on the insight.
+  if (hasFile && file instanceof File) {
+    const ext = file.name.split(".").pop()?.toLowerCase() || "png";
+    const path = `insights/${inserted.id}.${ext}`;
+    const { error: uploadErr } = await supabase.storage
+      .from(BUCKET)
+      .upload(path, file, { contentType: file.type, upsert: true });
+
+    if (uploadErr)
+      return { error: `Insight saved, but upload failed: ${uploadErr.message}` };
+
+    await supabase
+      .from("insights")
+      .update({ screenshot_path: path })
+      .eq("id", inserted.id);
+  }
 
   revalidatePath("/", "layout");
   redirect("/bets");
@@ -214,6 +254,29 @@ export async function deleteBet(formData: FormData): Promise<void> {
   }
 
   await supabase.from("bets").delete().eq("id", id);
+  revalidatePath("/", "layout");
+}
+
+// ---- Delete an insight (admin, from the feed) ----
+export async function deleteInsight(formData: FormData): Promise<void> {
+  const supabase = await createClient();
+  const admin = await requireAdminUser(supabase);
+  if (!admin) return;
+
+  const id = str(formData.get("id"));
+  if (!id) return;
+
+  // Best-effort: remove the attachment from storage too.
+  const { data: insight } = await supabase
+    .from("insights")
+    .select("screenshot_path")
+    .eq("id", id)
+    .single();
+  if (insight?.screenshot_path) {
+    await supabase.storage.from(BUCKET).remove([insight.screenshot_path]);
+  }
+
+  await supabase.from("insights").delete().eq("id", id);
   revalidatePath("/", "layout");
 }
 

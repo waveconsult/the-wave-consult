@@ -1,13 +1,10 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { getTournaments } from "@/lib/data";
 import { NewInsightForm } from "./NewInsightForm";
 
 export const metadata: Metadata = { title: "New Insight" };
 
-export default async function NewInsightPage() {
-  const tournaments = await getTournaments({ upcomingOnly: true });
-
+export default function NewInsightPage() {
   return (
     <div className="space-y-4">
       <div>
@@ -18,7 +15,7 @@ export default async function NewInsightPage() {
           New Insight
         </h1>
       </div>
-      <NewInsightForm tournaments={tournaments} />
+      <NewInsightForm />
     </div>
   );
 }
