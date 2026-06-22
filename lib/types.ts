@@ -40,7 +40,7 @@ export interface Bet {
   round: string | null;
   selection: string;
   market: string;
-  odds: number;
+  odds: number | null;
   stake_pct: number;
   min_odd: number | null;
   status: BetStatus;

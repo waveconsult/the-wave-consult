@@ -8,8 +8,10 @@ import type { BetStatus, InsightStatRow } from "@/lib/types";
 
 const BUCKET = "bet-shots";
 const RESOURCES_BUCKET = "resources";
-const MAX_BYTES = 5 * 1024 * 1024; // 5 MB cap (briefing §6)
-const MAX_PDF_BYTES = 20 * 1024 * 1024; // 20 MB cap for resource PDFs
+// Vercel serverless functions cap the request body at ~4.5MB, and uploads go
+// through a server action, so keep both caps at 4MB.
+const MAX_BYTES = 4 * 1024 * 1024; // 4 MB (images)
+const MAX_PDF_BYTES = 4 * 1024 * 1024; // 4 MB (PDFs)
 const VALID_STATUS: BetStatus[] = ["open", "won", "lost", "void"];
 
 export type AdminState = { error: string } | null;
@@ -62,26 +64,16 @@ export async function createBet(
   const match = str(formData.get("match"));
   const selection = str(formData.get("selection"));
   const market = str(formData.get("market"));
-  const odds = num(formData.get("odds"));
   const stakePct = num(formData.get("stake_pct"));
-  const minOddRaw = str(formData.get("min_odd"));
   const status = str(formData.get("status")) as BetStatus;
   const clvRaw = str(formData.get("clv"));
 
+  // Odds/min-odd are no longer separate fields — the analyst writes the price
+  // into the selection itself (e.g. "Sinner to win @1.62").
   if (!match || !selection || !market)
     return { error: "Match, selection and market are required." };
-  if (!Number.isFinite(odds) || odds <= 1)
-    return { error: "Odds must be greater than 1." };
   if (!Number.isFinite(stakePct) || stakePct < 0)
     return { error: "Stake % must be 0 or more." };
-
-  // Min odd is optional (discipline floor). Validate only when provided.
-  let minOdd: number | null = null;
-  if (minOddRaw) {
-    minOdd = num(formData.get("min_odd"));
-    if (!Number.isFinite(minOdd) || minOdd <= 1)
-      return { error: "Min odd must be greater than 1 (or leave it empty)." };
-  }
   if (!VALID_STATUS.includes(status)) return { error: "Invalid status." };
 
   // Validate the optional attachment before inserting (image OR PDF).
@@ -96,8 +88,8 @@ export async function createBet(
     if (file.size > cap)
       return {
         error: isPdf
-          ? "PDF must be 20 MB or smaller."
-          : "Image must be 5 MB or smaller.",
+          ? "PDF must be 4 MB or smaller."
+          : "Image must be 4 MB or smaller.",
       };
   }
 
@@ -110,9 +102,9 @@ export async function createBet(
       round: nullable(str(formData.get("round"))),
       selection,
       market,
-      odds,
+      odds: null,
       stake_pct: stakePct,
-      min_odd: minOdd,
+      min_odd: null,
       status,
       reasoning: nullable(str(formData.get("reasoning"))),
       clv: clvRaw ? num(formData.get("clv")) : null,
@@ -193,8 +185,8 @@ export async function createInsight(
     if (file.size > cap)
       return {
         error: isPdf
-          ? "PDF must be 20 MB or smaller."
-          : "Image must be 5 MB or smaller.",
+          ? "PDF must be 4 MB or smaller."
+          : "Image must be 4 MB or smaller.",
       };
   }
 
@@ -298,7 +290,7 @@ export async function createResource(
   if (file.type !== "application/pdf")
     return { error: "File must be a PDF." };
   if (file.size > MAX_PDF_BYTES)
-    return { error: "PDF must be 20 MB or smaller." };
+    return { error: "PDF must be 4 MB or smaller." };
 
   const path = `${crypto.randomUUID()}.pdf`;
   const { error: uploadErr } = await supabase.storage

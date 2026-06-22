@@ -1,5 +1,6 @@
 import type { InsightWithMeta } from "@/lib/types";
 import { Attachment } from "./Attachment";
+import { LockedCard } from "./LockedCard";
 import { deleteInsight } from "@/app/admin/actions";
 
 // Insight card — same look as the bets: a purple header with the match,
@@ -7,10 +8,14 @@ import { deleteInsight } from "@/app/admin/actions";
 export function InsightCard({
   insight,
   isAdmin = false,
+  locked = false,
 }: {
   insight: InsightWithMeta;
   isAdmin?: boolean;
+  locked?: boolean;
 }) {
+  if (locked) return <LockedCard />;
+
   const rows = insight.stats ?? [];
   const hasStats = rows.length > 0;
   const date = new Date(insight.published_at).toLocaleDateString("en-US", {

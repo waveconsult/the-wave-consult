@@ -72,7 +72,7 @@ export function NewInsightForm() {
           </span>
         </L>
 
-        <L label="Attachment — image or PDF (optional · image ≤ 5 MB, PDF ≤ 20 MB)" span>
+        <L label="Attachment — image or PDF (optional · max 4 MB)" span>
           <input
             name="screenshot"
             type="file"

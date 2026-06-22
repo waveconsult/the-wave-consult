@@ -44,9 +44,9 @@ create table public.bets (
   tournament_name text,                 -- free-text event name (typed on the form)
   match text not null,
   round text,
-  selection text not null,
+  selection text not null,              -- includes the price, e.g. 'Sinner @1.62'
   market text not null,
-  odds numeric not null,
+  odds numeric,                         -- optional (price is written into selection)
   stake_pct numeric not null,           -- % of bankroll (recommended)
   min_odd numeric,                      -- optional discipline floor (nullable)
   status text not null default 'open' check (status in ('open','won','lost','void')),

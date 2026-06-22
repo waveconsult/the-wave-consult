@@ -5,6 +5,7 @@ import { getTrackRecord } from "@/lib/data";
 import { euro } from "@/lib/format";
 import { RiskManagementForm } from "./RiskManagementForm";
 import { ChangePasswordForm } from "./ChangePasswordForm";
+import { NotificationToggle } from "@/components/NotificationToggle";
 import { signout } from "@/app/(auth)/actions";
 
 export const metadata: Metadata = { title: "Profile" };
@@ -84,6 +85,10 @@ export default async function ProfilePage() {
       {/* Risk management — just bankroll + play style */}
       <Eyebrow>Risk Management</Eyebrow>
       <RiskManagementForm profile={profile} />
+
+      {/* Notifications */}
+      <Eyebrow>Notifications</Eyebrow>
+      <NotificationToggle />
 
       {/* Password */}
       <Eyebrow>Password</Eyebrow>

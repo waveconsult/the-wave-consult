@@ -23,6 +23,13 @@ export default async function BetsPage({
   const profile = await requireProfile();
   const { tournament } = await searchParams;
 
+  // Free members only get picks older than 3 days; newer ones are locked
+  // (shown as a blurred, members-only placeholder). Admins see everything.
+  const isFree = profile.role !== "admin" && profile.tier === "none";
+  const lockBefore = Date.now() - 3 * 24 * 60 * 60 * 1000;
+  const isLocked = (publishedAt: string) =>
+    isFree && new Date(publishedAt).getTime() > lockBefore;
+
   const activeTournament = tournament
     ? await getTournamentById(tournament)
     : null;
@@ -79,12 +86,14 @@ export default async function BetsPage({
                 bet={item.bet}
                 bankroll={profile.bankroll}
                 isAdmin={profile.role === "admin"}
+                locked={isLocked(item.bet.published_at)}
               />
             ) : (
               <InsightCard
                 key={`i-${item.insight.id}`}
                 insight={item.insight}
                 isAdmin={profile.role === "admin"}
+                locked={isLocked(item.insight.published_at)}
               />
             ),
           )}

@@ -101,29 +101,17 @@ export function NewBetForm() {
         {/* actual submitted market value */}
         <input type="hidden" name="market" value={marketValue} />
 
-        <L label="Selection (the specific pick)" span>
+        <L label="Selection / the pick (write the price in here too)" span>
           <input
             name="selection"
             required
-            placeholder='e.g. "Alcaraz" or "Over 22.5"'
+            placeholder='e.g. "Sinner to win @1.62"'
             className={field}
           />
         </L>
 
-        <L label="Odds">
-          <input name="odds" inputMode="decimal" required placeholder="1.85" className={num} />
-        </L>
-        <L label="Stake %">
+        <L label="Stake %" span>
           <input name="stake_pct" inputMode="decimal" required placeholder="2" className={num} />
-        </L>
-
-        <L label="Min odd (optional — discipline floor)" span>
-          <input
-            name="min_odd"
-            inputMode="decimal"
-            placeholder="leave empty = no minimum"
-            className={num}
-          />
         </L>
 
         <L label="Status">
@@ -147,7 +135,7 @@ export function NewBetForm() {
           />
         </L>
 
-        <L label="Bet slip — screenshot or PDF (optional · image ≤ 5 MB, PDF ≤ 20 MB)" span>
+        <L label="Bet slip — screenshot or PDF (optional · max 4 MB)" span>
           <input
             name="screenshot"
             type="file"

@@ -123,11 +123,14 @@ export async function getTrackRecord(sinceISO: string): Promise<{
   let won = 0;
   let lost = 0;
   let fraction = 0;
-  for (const b of (data as { status: string; odds: number; stake_pct: number }[]) ?? []) {
+  for (const b of (data as { status: string; odds: number | null; stake_pct: number }[]) ?? []) {
+    const o = Number(b.odds);
     const stake = Number(b.stake_pct) / 100;
+    // Profit needs numeric odds; bets saved without odds can't be scored.
+    if (!Number.isFinite(o) || o <= 1 || !Number.isFinite(stake)) continue;
     if (b.status === "won") {
       won++;
-      fraction += stake * (Number(b.odds) - 1);
+      fraction += stake * (o - 1);
     } else {
       lost++;
       fraction -= stake;

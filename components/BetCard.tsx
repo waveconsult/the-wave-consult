@@ -3,6 +3,7 @@ import { betStakeAmount } from "@/lib/staking";
 import { odds } from "@/lib/format";
 import { deleteBet } from "@/app/admin/actions";
 import { Attachment } from "./Attachment";
+import { LockedCard } from "./LockedCard";
 
 // Bet card: a betting-slip look — a purple header carrying the line
 // ("{selection} @{odds}") on top, and a clean white body with the analysis.
@@ -17,11 +18,17 @@ export function BetCard({
   bet,
   bankroll,
   isAdmin = false,
+  locked = false,
 }: {
   bet: BetWithMeta;
   bankroll: number;
   isAdmin?: boolean;
+  locked?: boolean;
 }) {
+  // Free members don't get the real content of recent picks (rendered on the
+  // server, so nothing sensitive reaches the client).
+  if (locked) return <LockedCard />;
+
   const amount = betStakeAmount(bankroll, bet.stake_pct);
   const tournamentLabel =
     bet.tournament?.name ?? bet.tournament_name ?? "Tournament";
@@ -34,8 +41,10 @@ export function BetCard({
       <header className="flex items-center justify-between gap-3 bg-gradient-to-r from-primary-deep to-primary px-4 py-3">
         <div className="min-w-0">
           <p className="truncate font-display text-[17px] font-bold leading-tight text-white">
-            {bet.selection}{" "}
-            <span className="mono font-bold text-white/95">@{odds(bet.odds)}</span>
+            {bet.selection}
+            {bet.odds != null ? (
+              <span className="mono font-bold text-white/95"> @{odds(bet.odds)}</span>
+            ) : null}
           </p>
           <p className="text-[11px] font-medium text-white/70">{bet.market}</p>
         </div>

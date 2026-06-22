@@ -38,6 +38,11 @@ export default async function AdminHome() {
           title="New Resource"
           desc="Upload a PDF / tool"
         />
+        <ActionTile
+          href="/admin/notify"
+          title="Send Notification"
+          desc="Push to all members"
+        />
       </div>
 
       <section>
