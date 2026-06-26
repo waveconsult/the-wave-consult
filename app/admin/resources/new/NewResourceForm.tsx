@@ -25,7 +25,7 @@ export function NewResourceForm() {
       </label>
 
       <label className="block">
-        <span className="mb-1 block text-xs text-muted">PDF (≤ 20 MB)</span>
+        <span className="mb-1 block text-xs text-muted">PDF (≤ 4 MB)</span>
         <input
           name="file"
           type="file"

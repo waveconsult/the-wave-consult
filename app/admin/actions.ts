@@ -3,8 +3,10 @@
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
+import { broadcast } from "@/lib/push";
 import { parseDecimal } from "@/lib/format";
-import type { BetStatus, InsightStatRow } from "@/lib/types";
+import type { InsightStatRow } from "@/lib/types";
 
 const BUCKET = "bet-shots";
 const RESOURCES_BUCKET = "resources";
@@ -12,7 +14,6 @@ const RESOURCES_BUCKET = "resources";
 // through a server action, so keep both caps at 4MB.
 const MAX_BYTES = 4 * 1024 * 1024; // 4 MB (images)
 const MAX_PDF_BYTES = 4 * 1024 * 1024; // 4 MB (PDFs)
-const VALID_STATUS: BetStatus[] = ["open", "won", "lost", "void"];
 
 export type AdminState = { error: string } | null;
 
@@ -61,20 +62,14 @@ export async function createBet(
     .single();
   if (me?.role !== "admin") return { error: "Admins only." };
 
-  const match = str(formData.get("match"));
   const selection = str(formData.get("selection"));
-  const market = str(formData.get("market"));
   const stakePct = num(formData.get("stake_pct"));
-  const status = str(formData.get("status")) as BetStatus;
-  const clvRaw = str(formData.get("clv"));
 
-  // Odds/min-odd are no longer separate fields — the analyst writes the price
-  // into the selection itself (e.g. "Sinner to win @1.62").
-  if (!match || !selection || !market)
-    return { error: "Match, selection and market are required." };
+  // Everything is written into the pick (selection), price included. Match,
+  // market, round, odds, status and CLV are no longer separate inputs.
+  if (!selection) return { error: "The pick is required." };
   if (!Number.isFinite(stakePct) || stakePct < 0)
     return { error: "Stake % must be 0 or more." };
-  if (!VALID_STATUS.includes(status)) return { error: "Invalid status." };
 
   // Validate the optional attachment before inserting (image OR PDF).
   const file = formData.get("screenshot");
@@ -98,16 +93,16 @@ export async function createBet(
     .insert({
       tournament_id: null,
       tournament_name: nullable(str(formData.get("tournament_name"))),
-      match,
-      round: nullable(str(formData.get("round"))),
+      match: selection,
+      round: null,
       selection,
-      market,
+      market: "",
       odds: null,
       stake_pct: stakePct,
       min_odd: null,
-      status,
+      status: "open",
       reasoning: nullable(str(formData.get("reasoning"))),
-      clv: clvRaw ? num(formData.get("clv")) : null,
+      clv: null,
       created_by: user.id,
     })
     .select("id")
@@ -115,11 +110,13 @@ export async function createBet(
 
   if (insertErr || !inserted) return { error: insertErr?.message ?? "Insert failed." };
 
-  // Upload screenshot → storage, then store its path on the bet.
+  // Upload screenshot via the service-role client (bypasses storage RLS), then
+  // store its path on the bet.
   if (hasFile && file instanceof File) {
+    const admin = createAdminClient();
     const ext = file.name.split(".").pop()?.toLowerCase() || "png";
     const path = `bets/${inserted.id}.${ext}`;
-    const { error: uploadErr } = await supabase.storage
+    const { error: uploadErr } = await admin.storage
       .from(BUCKET)
       .upload(path, file, { contentType: file.type, upsert: true });
 
@@ -129,6 +126,19 @@ export async function createBet(
       .from("bets")
       .update({ screenshot_path: path })
       .eq("id", inserted.id);
+  }
+
+  // Optionally fire a push notification to all subscribers.
+  if (str(formData.get("notify")) === "on") {
+    const ntitle = str(formData.get("notify_title"));
+    const nbody = str(formData.get("notify_body"));
+    if (ntitle && nbody) {
+      try {
+        await broadcast({ title: ntitle, body: nbody, url: "/bets" });
+      } catch {
+        // A push failure must never block publishing the bet.
+      }
+    }
   }
 
   revalidatePath("/", "layout");
@@ -205,11 +215,13 @@ export async function createInsight(
 
   if (error || !inserted) return { error: error?.message ?? "Insert failed." };
 
-  // Upload the attachment → storage, then store its path on the insight.
+  // Upload the attachment via the service-role client (bypasses storage RLS),
+  // then store its path on the insight.
   if (hasFile && file instanceof File) {
+    const admin = createAdminClient();
     const ext = file.name.split(".").pop()?.toLowerCase() || "png";
     const path = `insights/${inserted.id}.${ext}`;
-    const { error: uploadErr } = await supabase.storage
+    const { error: uploadErr } = await admin.storage
       .from(BUCKET)
       .upload(path, file, { contentType: file.type, upsert: true });
 
@@ -242,7 +254,7 @@ export async function deleteBet(formData: FormData): Promise<void> {
     .eq("id", id)
     .single();
   if (bet?.screenshot_path) {
-    await supabase.storage.from(BUCKET).remove([bet.screenshot_path]);
+    await createAdminClient().storage.from(BUCKET).remove([bet.screenshot_path]);
   }
 
   await supabase.from("bets").delete().eq("id", id);
@@ -265,7 +277,7 @@ export async function deleteInsight(formData: FormData): Promise<void> {
     .eq("id", id)
     .single();
   if (insight?.screenshot_path) {
-    await supabase.storage.from(BUCKET).remove([insight.screenshot_path]);
+    await createAdminClient().storage.from(BUCKET).remove([insight.screenshot_path]);
   }
 
   await supabase.from("insights").delete().eq("id", id);
@@ -293,7 +305,7 @@ export async function createResource(
     return { error: "PDF must be 4 MB or smaller." };
 
   const path = `${crypto.randomUUID()}.pdf`;
-  const { error: uploadErr } = await supabase.storage
+  const { error: uploadErr } = await createAdminClient().storage
     .from(RESOURCES_BUCKET)
     .upload(path, file, { contentType: "application/pdf", upsert: false });
   if (uploadErr) return { error: uploadErr.message };

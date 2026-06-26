@@ -2,6 +2,7 @@
 // component. Configure with NEXT_PUBLIC_VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY and
 // (optional) VAPID_SUBJECT env vars.
 import webpush from "web-push";
+import { createAdminClient } from "./supabase/admin";
 
 const PUBLIC = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
 const PRIVATE = process.env.VAPID_PRIVATE_KEY;
@@ -39,4 +40,33 @@ export async function sendPush(
     const code = (err as { statusCode?: number }).statusCode;
     return { ok: false, gone: code === 404 || code === 410 };
   }
+}
+
+// Send a notification to every stored subscription. Reads subscriptions with
+// the service-role client and prunes expired ones. Returns how many were sent.
+export async function broadcast(payload: {
+  title: string;
+  body: string;
+  url?: string;
+}): Promise<{ sent: number; total: number }> {
+  if (!ensureConfigured()) return { sent: 0, total: 0 };
+  const admin = createAdminClient();
+  const { data } = await admin
+    .from("push_subscriptions")
+    .select("endpoint, p256dh, auth");
+  const list = (data as StoredSub[]) ?? [];
+
+  let sent = 0;
+  const dead: string[] = [];
+  await Promise.allSettled(
+    list.map(async (s) => {
+      const r = await sendPush(s, payload);
+      if (r.ok) sent += 1;
+      else if (r.gone) dead.push(s.endpoint);
+    }),
+  );
+  if (dead.length) {
+    await admin.from("push_subscriptions").delete().in("endpoint", dead);
+  }
+  return { sent, total: list.length };
 }

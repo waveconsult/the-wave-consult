@@ -1,148 +1,158 @@
 "use client";
 
-import { useActionState, useState } from "react";
+import { useActionState, useRef, useState } from "react";
 import { createBet, type AdminState } from "@/app/admin/actions";
 
 const field =
   "w-full rounded-xl border border-border bg-surface px-3.5 py-2.5 text-sm text-text outline-none transition focus:border-primary-bright focus:ring-2 focus:ring-primary/30";
 const num = `${field} mono`;
 
-// Common tennis markets for the dropdown; "__other__" reveals a free-text field.
-const MARKETS = [
-  "Match Winner",
-  "Set Handicap",
-  "Game Handicap",
-  "Total Games (Over/Under)",
-  "Total Sets (Over/Under)",
-  "Correct Score",
-];
-
 function L({
   label,
   children,
-  span,
 }: {
   label: string;
   children: React.ReactNode;
-  span?: boolean;
 }) {
   return (
-    <label className={`block ${span ? "col-span-2" : ""}`}>
+    <label className="block">
       <span className="mb-1 block text-xs text-muted">{label}</span>
       {children}
     </label>
   );
 }
 
-export function NewBetForm() {
+export function NewBetForm({ bankroll }: { bankroll: number }) {
   const [state, formAction, pending] = useActionState<AdminState, FormData>(
     createBet,
     null,
   );
-  const [market, setMarket] = useState(MARKETS[0]);
-  const [customMarket, setCustomMarket] = useState("");
-  const isOther = market === "__other__";
-  const marketValue = isOther ? customMarket : market;
+  const [stake, setStake] = useState("2");
+  const [notify, setNotify] = useState(false);
+  const [fileName, setFileName] = useState<string | null>(null);
+  const fileRef = useRef<HTMLInputElement>(null);
+
+  const stakeNum = parseFloat(stake.replace(",", "."));
+  const amount = Number.isFinite(stakeNum) ? bankroll * (stakeNum / 100) : 0;
+  const euro = (n: number) =>
+    n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+  // Paste a screenshot anywhere in the form (Ctrl + V) → load it into the file input.
+  function onPaste(e: React.ClipboardEvent<HTMLFormElement>) {
+    const items = e.clipboardData?.items;
+    if (!items) return;
+    for (const it of Array.from(items)) {
+      if (it.type.startsWith("image/")) {
+        const blob = it.getAsFile();
+        if (!blob) continue;
+        const file = new File([blob], `pasted-${Date.now()}.png`, {
+          type: blob.type || "image/png",
+        });
+        const dt = new DataTransfer();
+        dt.items.add(file);
+        if (fileRef.current) fileRef.current.files = dt.files;
+        setFileName(file.name);
+        break;
+      }
+    }
+  }
 
   return (
-    <form action={formAction} className="card space-y-4 p-4">
-      {/* Explainer: Market vs Selection */}
-      <div className="rounded-xl border border-border bg-surface-2 px-3.5 py-3 text-[12px] leading-relaxed text-muted">
-        <p>
-          <b className="text-text">Market</b> = <i>what</i> you bet on (e.g.
-          match winner, over/under games).{" "}
-          <b className="text-text">Selection</b> = <i>the specific pick</i>{" "}
-          (e.g. Alcaraz, Over 22.5, +1.5 sets).
-        </p>
-      </div>
+    <form action={formAction} onPaste={onPaste} className="card space-y-4 p-4">
+      <L label="Tournament (type it in)">
+        <input name="tournament_name" placeholder="e.g. Halle Open" className={field} />
+      </L>
 
-      <div className="grid grid-cols-2 gap-3">
-        <L label="Tournament (type it in)" span>
+      <L label="The pick — write the price in here too">
+        <input
+          name="selection"
+          required
+          placeholder='e.g. "Sinner to win @1.62"'
+          className={field}
+        />
+      </L>
+
+      <L label="Stake %">
+        <div className="flex items-center gap-2.5">
           <input
-            name="tournament_name"
-            placeholder="e.g. Halle Open"
-            className={field}
+            name="stake_pct"
+            inputMode="decimal"
+            required
+            value={stake}
+            onChange={(e) => setStake(e.target.value)}
+            placeholder="2"
+            className={`${num} flex-1`}
           />
-        </L>
+          <span className="mono shrink-0 rounded-xl border border-border bg-surface-2 px-3 py-2.5 text-sm font-bold text-primary-bright">
+            ≈ €{euro(amount)}
+          </span>
+        </div>
+        <span className="mt-1 block text-[11px] text-faint">
+          Live, on your bankroll (€{euro(bankroll)}). Each member sees the amount
+          for their own bankroll.
+        </span>
+      </L>
 
-        <L label="Match" span>
-          <input name="match" required placeholder="Alcaraz — Sinner" className={field} />
-        </L>
-        <L label="Round">
-          <input name="round" placeholder="R16" className={field} />
-        </L>
+      <L label="Reasoning">
+        <textarea
+          name="reasoning"
+          rows={4}
+          placeholder="Calm, analytical. The why behind the pick."
+          className={field}
+        />
+      </L>
 
-        <L label="Market (what you bet on)">
-          <select
-            value={market}
-            onChange={(e) => setMarket(e.target.value)}
-            className={field}
-          >
-            {MARKETS.map((m) => (
-              <option key={m} value={m}>
-                {m}
-              </option>
-            ))}
-            <option value="__other__">Other…</option>
-          </select>
-        </L>
+      <L label="Bet slip — screenshot or PDF (optional · max 4 MB)">
+        <input
+          ref={fileRef}
+          name="screenshot"
+          type="file"
+          accept="image/*,application/pdf"
+          onChange={(e) => setFileName(e.target.files?.[0]?.name ?? null)}
+          className="block w-full text-sm text-muted file:mr-3 file:rounded-lg file:border-0 file:bg-surface-2 file:px-3 file:py-2 file:text-sm file:text-text"
+        />
+        <span className="mt-1 block text-[11px] text-faint">
+          Or press Ctrl + V to paste a screenshot.
+          {fileName ? ` · ${fileName}` : ""}
+        </span>
+      </L>
 
-        {isOther ? (
-          <L label="Custom market" span>
+      {/* Push toggle */}
+      <div className="rounded-xl border border-border bg-surface-2 p-3.5">
+        <label className="flex cursor-pointer items-center justify-between gap-3">
+          <span className="text-sm font-semibold text-text">
+            Push out a notification?
+          </span>
+          <span className="relative inline-flex h-6 w-11 shrink-0 items-center">
             <input
-              value={customMarket}
-              onChange={(e) => setCustomMarket(e.target.value)}
-              placeholder="e.g. Tie-break in set 1"
+              type="checkbox"
+              name="notify"
+              checked={notify}
+              onChange={(e) => setNotify(e.target.checked)}
+              className="peer sr-only"
+            />
+            <span className="h-6 w-11 rounded-full bg-surface transition peer-checked:bg-primary" />
+            <span className="absolute left-0.5 h-5 w-5 rounded-full bg-white transition peer-checked:translate-x-5" />
+          </span>
+        </label>
+
+        {notify ? (
+          <div className="mt-3 space-y-2">
+            <input
+              name="notify_title"
+              maxLength={50}
+              placeholder="Title (e.g. New ATP pick)"
               className={field}
             />
-          </L>
+            <textarea
+              name="notify_body"
+              rows={2}
+              maxLength={140}
+              placeholder="Message (e.g. A fresh value pick is live. Tap to read it.)"
+              className={field}
+            />
+          </div>
         ) : null}
-
-        {/* actual submitted market value */}
-        <input type="hidden" name="market" value={marketValue} />
-
-        <L label="Selection / the pick (write the price in here too)" span>
-          <input
-            name="selection"
-            required
-            placeholder='e.g. "Sinner to win @1.62"'
-            className={field}
-          />
-        </L>
-
-        <L label="Stake %" span>
-          <input name="stake_pct" inputMode="decimal" required placeholder="2" className={num} />
-        </L>
-
-        <L label="Status">
-          <select name="status" defaultValue="open" className={field}>
-            <option value="open">Open</option>
-            <option value="won">Won</option>
-            <option value="lost">Lost</option>
-            <option value="void">Void</option>
-          </select>
-        </L>
-        <L label="CLV % (optional, documented only)">
-          <input name="clv" inputMode="decimal" placeholder="after settlement" className={num} />
-        </L>
-
-        <L label="Reasoning" span>
-          <textarea
-            name="reasoning"
-            rows={4}
-            placeholder="Calm, analytical. The why behind the pick."
-            className={field}
-          />
-        </L>
-
-        <L label="Bet slip — screenshot or PDF (optional · max 4 MB)" span>
-          <input
-            name="screenshot"
-            type="file"
-            accept="image/*,application/pdf"
-            className="block w-full text-sm text-muted file:mr-3 file:rounded-lg file:border-0 file:bg-surface-2 file:px-3 file:py-2 file:text-sm file:text-text"
-          />
-        </L>
       </div>
 
       {state?.error ? (

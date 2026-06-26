@@ -1,10 +1,13 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { requireProfile } from "@/lib/auth";
 import { NewBetForm } from "./NewBetForm";
 
 export const metadata: Metadata = { title: "New Bet" };
 
-export default function NewBetPage() {
+export default async function NewBetPage() {
+  const profile = await requireProfile();
+
   return (
     <div className="space-y-4">
       <div>
@@ -15,7 +18,7 @@ export default function NewBetPage() {
           New Bet
         </h1>
       </div>
-      <NewBetForm />
+      <NewBetForm bankroll={profile.bankroll} />
     </div>
   );
 }

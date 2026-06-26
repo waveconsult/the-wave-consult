@@ -1,4 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
+import type { SupabaseClient } from "@supabase/supabase-js";
 import type {
   BetWithMeta,
   InsightWithMeta,
@@ -9,20 +11,35 @@ import type {
 const BUCKET = "bet-shots";
 const BUCKET_PUBLIC = process.env.NEXT_PUBLIC_BET_SHOTS_PUBLIC === "true";
 
-// Resolve a stored screenshot path to a URL the browser can load.
+// Prefer the service-role client for signing storage URLs (bypasses storage
+// RLS). If the service key isn't configured, fall back to the caller's client
+// so the feed never crashes.
+function storageClient(fallback: SupabaseClient): SupabaseClient {
+  try {
+    return createAdminClient() as unknown as SupabaseClient;
+  } catch {
+    return fallback;
+  }
+}
+
+// Resolve a stored attachment path to a URL the browser can load.
 // Public bucket → public URL; private bucket → short-lived signed URL.
 async function resolveScreenshot(
-  supabase: Awaited<ReturnType<typeof createClient>>,
+  client: SupabaseClient,
   path: string | null,
 ): Promise<string | null> {
   if (!path) return null;
-  if (BUCKET_PUBLIC) {
-    return supabase.storage.from(BUCKET).getPublicUrl(path).data.publicUrl;
+  try {
+    if (BUCKET_PUBLIC) {
+      return client.storage.from(BUCKET).getPublicUrl(path).data.publicUrl;
+    }
+    const { data } = await client.storage
+      .from(BUCKET)
+      .createSignedUrl(path, 60 * 60); // 1h TTL
+    return data?.signedUrl ?? null;
+  } catch {
+    return null;
   }
-  const { data } = await supabase.storage
-    .from(BUCKET)
-    .createSignedUrl(path, 60 * 60); // 1h TTL
-  return data?.signedUrl ?? null;
 }
 
 export async function getTournaments(
@@ -62,11 +79,12 @@ export async function getBets(
   const { data } = await query;
   const bets = (data as BetWithMeta[]) ?? [];
 
-  // Resolve screenshots (signed URLs when the bucket is private).
+  // Resolve attachments (signed URLs when the bucket is private).
+  const client = storageClient(supabase as unknown as SupabaseClient);
   return Promise.all(
     bets.map(async (b) => ({
       ...b,
-      screenshot_url: await resolveScreenshot(supabase, b.screenshot_path),
+      screenshot_url: await resolveScreenshot(client, b.screenshot_path),
     })),
   );
 }
@@ -94,10 +112,11 @@ export async function getInsights(): Promise<InsightWithMeta[]> {
   const insights = (data as InsightWithMeta[]) ?? [];
 
   // Resolve attachments (signed URLs when the bucket is private), same as bets.
+  const client = storageClient(supabase as unknown as SupabaseClient);
   return Promise.all(
     insights.map(async (i) => ({
       ...i,
-      screenshot_url: await resolveScreenshot(supabase, i.screenshot_path),
+      screenshot_url: await resolveScreenshot(client, i.screenshot_path),
     })),
   );
 }

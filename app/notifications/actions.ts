@@ -1,8 +1,7 @@
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
-import { createAdminClient } from "@/lib/supabase/admin";
-import { sendPush, pushConfigured } from "@/lib/push";
+import { broadcast, pushConfigured } from "@/lib/push";
 
 export type PushResult = { ok?: string; error?: string } | null;
 
@@ -77,29 +76,7 @@ export async function sendPushToAll(
   if (!title) return { error: "Title is required." };
   if (!body) return { error: "Message is required." };
 
-  // Read all subscriptions with the service-role client (bypasses RLS).
-  const admin = createAdminClient();
-  const { data: subs } = await admin
-    .from("push_subscriptions")
-    .select("endpoint, p256dh, auth");
-
-  const list = (subs as { endpoint: string; p256dh: string; auth: string }[]) ?? [];
-  if (list.length === 0) return { ok: "No one has enabled notifications yet." };
-
-  let sent = 0;
-  const dead: string[] = [];
-  await Promise.allSettled(
-    list.map(async (s) => {
-      const r = await sendPush(s, { title, body, url });
-      if (r.ok) sent += 1;
-      else if (r.gone) dead.push(s.endpoint);
-    }),
-  );
-
-  // Clean up expired subscriptions.
-  if (dead.length) {
-    await admin.from("push_subscriptions").delete().in("endpoint", dead);
-  }
-
-  return { ok: `Sent to ${sent} of ${list.length} device(s).` };
+  const { sent, total } = await broadcast({ title, body, url });
+  if (total === 0) return { ok: "No one has enabled notifications yet." };
+  return { ok: `Sent to ${sent} of ${total} device(s).` };
 }
