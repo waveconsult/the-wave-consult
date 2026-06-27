@@ -137,12 +137,22 @@ create policy "applications update" on public.applications for update using (pub
 --
 -- Storage policies (private-bucket variant) — only admins upload:
 -- =====================================================================
+-- One private 'bet-shots' bucket holds bet slips, insight attachments and
+-- tool/resource PDFs. Admins write; any signed-in member reads (so the app can
+-- sign URLs). Free-member gating is enforced in the app, not here.
 create policy "bet-shots admin upload"
-  on storage.objects for insert
+  on storage.objects for insert to authenticated
   with check (bucket_id = 'bet-shots' and public.is_admin());
 create policy "bet-shots admin update"
-  on storage.objects for update
+  on storage.objects for update to authenticated
+  using (bucket_id = 'bet-shots' and public.is_admin())
+  with check (bucket_id = 'bet-shots' and public.is_admin());
+create policy "bet-shots admin delete"
+  on storage.objects for delete to authenticated
   using (bucket_id = 'bet-shots' and public.is_admin());
+create policy "bet-shots read"
+  on storage.objects for select to authenticated
+  using (bucket_id = 'bet-shots');
 
 -- =====================================================================
 -- Make yourself admin (one-time, after first signup):

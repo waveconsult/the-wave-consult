@@ -3,13 +3,14 @@
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
-import { createAdminClient } from "@/lib/supabase/admin";
 import { broadcast } from "@/lib/push";
 import { parseDecimal } from "@/lib/format";
 import type { InsightStatRow } from "@/lib/types";
 
+// One private bucket holds everything: bet slips, insight attachments and
+// tool/resource PDFs. Uploads run on the user's (admin) session so they never
+// depend on the service-role key — the storage RLS policies gate them.
 const BUCKET = "bet-shots";
-const RESOURCES_BUCKET = "resources";
 // Vercel serverless functions cap the request body at ~4.5MB, and uploads go
 // through a server action, so keep both caps at 4MB.
 const MAX_BYTES = 4 * 1024 * 1024; // 4 MB (images)
@@ -110,13 +111,11 @@ export async function createBet(
 
   if (insertErr || !inserted) return { error: insertErr?.message ?? "Insert failed." };
 
-  // Upload screenshot via the service-role client (bypasses storage RLS), then
-  // store its path on the bet.
+  // Upload screenshot, then store its path on the bet.
   if (hasFile && file instanceof File) {
-    const admin = createAdminClient();
     const ext = file.name.split(".").pop()?.toLowerCase() || "png";
     const path = `bets/${inserted.id}.${ext}`;
-    const { error: uploadErr } = await admin.storage
+    const { error: uploadErr } = await supabase.storage
       .from(BUCKET)
       .upload(path, file, { contentType: file.type, upsert: true });
 
@@ -215,13 +214,11 @@ export async function createInsight(
 
   if (error || !inserted) return { error: error?.message ?? "Insert failed." };
 
-  // Upload the attachment via the service-role client (bypasses storage RLS),
-  // then store its path on the insight.
+  // Upload the attachment, then store its path on the insight.
   if (hasFile && file instanceof File) {
-    const admin = createAdminClient();
     const ext = file.name.split(".").pop()?.toLowerCase() || "png";
     const path = `insights/${inserted.id}.${ext}`;
-    const { error: uploadErr } = await admin.storage
+    const { error: uploadErr } = await supabase.storage
       .from(BUCKET)
       .upload(path, file, { contentType: file.type, upsert: true });
 
@@ -254,7 +251,7 @@ export async function deleteBet(formData: FormData): Promise<void> {
     .eq("id", id)
     .single();
   if (bet?.screenshot_path) {
-    await createAdminClient().storage.from(BUCKET).remove([bet.screenshot_path]);
+    await supabase.storage.from(BUCKET).remove([bet.screenshot_path]);
   }
 
   await supabase.from("bets").delete().eq("id", id);
@@ -277,7 +274,7 @@ export async function deleteInsight(formData: FormData): Promise<void> {
     .eq("id", id)
     .single();
   if (insight?.screenshot_path) {
-    await createAdminClient().storage.from(BUCKET).remove([insight.screenshot_path]);
+    await supabase.storage.from(BUCKET).remove([insight.screenshot_path]);
   }
 
   await supabase.from("insights").delete().eq("id", id);
@@ -304,9 +301,9 @@ export async function createResource(
   if (file.size > MAX_PDF_BYTES)
     return { error: "PDF must be 4 MB or smaller." };
 
-  const path = `${crypto.randomUUID()}.pdf`;
-  const { error: uploadErr } = await createAdminClient().storage
-    .from(RESOURCES_BUCKET)
+  const path = `resources/${crypto.randomUUID()}.pdf`;
+  const { error: uploadErr } = await supabase.storage
+    .from(BUCKET)
     .upload(path, file, { contentType: "application/pdf", upsert: false });
   if (uploadErr) return { error: uploadErr.message };
 
