@@ -6,13 +6,11 @@
 -- delete from public.tournaments;
 -- =====================================================================
 
+-- ATP only — never WTA.
 insert into public.tournaments (slug, name, location, country_flag, category, surface, start_date, end_date) values
   ('queens',      'HSBC Championships',   'London / Queen''s', '🇬🇧', 'ATP 500',      'Grass', '2026-06-15', '2026-06-21'),
   ('halle',       'Terra Wortmann Open',  'Halle',             '🇩🇪', 'ATP 500',      'Grass', '2026-06-15', '2026-06-21'),
-  ('berlin',      'Berlin Tennis Open',   'Berlin',            '🇩🇪', 'WTA 500',      'Grass', '2026-06-15', '2026-06-21'),
-  ('birmingham',  'Rothesay Classic',     'Birmingham',        '🇬🇧', 'WTA 250',      'Grass', '2026-06-15', '2026-06-21'),
-  ('eastbourne',  'Rothesay International','Eastbourne',        '🇬🇧', 'ATP/WTA 250',  'Grass', '2026-06-22', '2026-06-28'),
-  ('badhomburg',  'Bad Homburg Open',     'Bad Homburg',       '🇩🇪', 'WTA 500',      'Grass', '2026-06-22', '2026-06-28'),
+  ('eastbourne',  'Rothesay International','Eastbourne',        '🇬🇧', 'ATP 250',      'Grass', '2026-06-22', '2026-06-28'),
   ('mallorca',    'Mallorca Championships','Mallorca',         '🇪🇸', 'ATP 250',      'Grass', '2026-06-22', '2026-06-28'),
   ('wimbledon',   'Wimbledon',            'London',            '🇬🇧', 'Grand Slam',   'Grass', '2026-06-29', '2026-07-12')
 on conflict (slug) do update

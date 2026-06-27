@@ -87,6 +87,7 @@ export default async function BetsPage({
                 bankroll={profile.bankroll}
                 isAdmin={profile.role === "admin"}
                 locked={isLocked(item.bet.published_at)}
+                strategy={profile.staking_strategy}
               />
             ) : (
               <InsightCard

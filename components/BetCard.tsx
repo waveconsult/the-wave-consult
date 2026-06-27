@@ -1,5 +1,5 @@
-import type { BetWithMeta } from "@/lib/types";
-import { betStakeAmount } from "@/lib/staking";
+import type { BetWithMeta, Strategy } from "@/lib/types";
+import { effectiveStakePct, memberStakeAmount } from "@/lib/staking";
 import { odds } from "@/lib/format";
 import { deleteBet } from "@/app/admin/actions";
 import { Attachment } from "./Attachment";
@@ -12,17 +12,22 @@ export function BetCard({
   bankroll,
   isAdmin = false,
   locked = false,
+  strategy = "conservative",
 }: {
   bet: BetWithMeta;
   bankroll: number;
   isAdmin?: boolean;
   locked?: boolean;
+  strategy?: Strategy;
 }) {
   // Free members don't get the real content of recent picks (rendered on the
   // server, so nothing sensitive reaches the client).
   if (locked) return <LockedCard />;
 
-  const amount = betStakeAmount(bankroll, bet.stake_pct);
+  // The analyst enters the conservative stake; aggressive players bet ×5.5/4.
+  const isAggressive = strategy === "aggressive";
+  const effectivePct = effectiveStakePct(bet.stake_pct, strategy);
+  const amount = memberStakeAmount(bankroll, bet.stake_pct, strategy);
   const tournamentLabel =
     bet.tournament?.name ?? bet.tournament_name ?? "Tournament";
   const meta = bet.round ? `${tournamentLabel} · ${bet.round}` : tournamentLabel;
@@ -55,17 +60,34 @@ export function BetCard({
 
       {/* white body */}
       <div className="p-4">
-        <p className="mono text-[10px] uppercase tracking-wide text-[#8b8794]">
-          {bet.tournament?.country_flag ? `${bet.tournament.country_flag} ` : ""}
-          {meta}
-        </p>
+        <div className="flex items-center justify-between gap-2">
+          <p className="mono min-w-0 truncate text-[10px] uppercase tracking-wide text-[#8b8794]">
+            {bet.tournament?.country_flag ? `${bet.tournament.country_flag} ` : ""}
+            {meta}
+          </p>
+          <span
+            className={`mono shrink-0 rounded-md px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide ${
+              isAggressive
+                ? "bg-[#6d28d9]/[0.12] text-[#6d28d9]"
+                : "border border-[#ece9f4] bg-[#f5f3fa] text-[#8b8794]"
+            }`}
+          >
+            {isAggressive ? "Aggressive" : "Conservative"}
+          </span>
+        </div>
 
         <div
           className={`mt-2.5 grid gap-2 ${
             bet.min_odd != null ? "grid-cols-3" : "grid-cols-2"
           }`}
         >
-          <Stat label="Stake" value={String(bet.stake_pct)} unit="%" />
+          <Stat
+            label="Stake"
+            value={effectivePct.toLocaleString("en-US", {
+              maximumFractionDigits: 2,
+            })}
+            unit="%"
+          />
           <Stat
             label="Amount"
             value={amount.toLocaleString("en-US", {

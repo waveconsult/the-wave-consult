@@ -2,6 +2,7 @@
 
 import { useActionState, useRef, useState } from "react";
 import { createBet, type AdminState } from "@/app/admin/actions";
+import { AGGRESSIVE_RATIO } from "@/lib/staking";
 
 const field =
   "w-full rounded-xl border border-border bg-surface px-3.5 py-2.5 text-sm text-text outline-none transition focus:border-primary-bright focus:ring-2 focus:ring-primary/30";
@@ -27,13 +28,14 @@ export function NewBetForm({ bankroll }: { bankroll: number }) {
     createBet,
     null,
   );
-  const [stake, setStake] = useState("2");
+  const [stake, setStake] = useState("4");
   const [notify, setNotify] = useState(false);
   const [fileName, setFileName] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
 
   const stakeNum = parseFloat(stake.replace(",", "."));
-  const amount = Number.isFinite(stakeNum) ? bankroll * (stakeNum / 100) : 0;
+  const cons = Number.isFinite(stakeNum) ? bankroll * (stakeNum / 100) : 0;
+  const aggr = cons * AGGRESSIVE_RATIO;
   const euro = (n: number) =>
     n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
@@ -72,24 +74,37 @@ export function NewBetForm({ bankroll }: { bankroll: number }) {
         />
       </L>
 
-      <L label="Stake %">
-        <div className="flex items-center gap-2.5">
-          <input
-            name="stake_pct"
-            inputMode="decimal"
-            required
-            value={stake}
-            onChange={(e) => setStake(e.target.value)}
-            placeholder="2"
-            className={`${num} flex-1`}
-          />
-          <span className="mono shrink-0 rounded-xl border border-border bg-surface-2 px-3 py-2.5 text-sm font-bold text-primary-bright">
-            ≈ €{euro(amount)}
-          </span>
+      <L label="Stake % — conservative (you always enter this)">
+        <input
+          name="stake_pct"
+          inputMode="decimal"
+          required
+          value={stake}
+          onChange={(e) => setStake(e.target.value)}
+          placeholder="4"
+          className={num}
+        />
+        <div className="mt-2 grid grid-cols-2 gap-2">
+          <div className="rounded-xl border border-border bg-surface-2 px-3 py-2">
+            <p className="mono text-[9px] uppercase tracking-wide text-faint">
+              Conservative · over €10k
+            </p>
+            <p className="mono mt-0.5 text-[15px] font-bold text-text">
+              ≈ €{euro(cons)}
+            </p>
+          </div>
+          <div className="rounded-xl border border-primary/30 bg-primary/[0.08] px-3 py-2">
+            <p className="mono text-[9px] uppercase tracking-wide text-primary-bright">
+              Aggressive · under €10k
+            </p>
+            <p className="mono mt-0.5 text-[15px] font-bold text-text">
+              ≈ €{euro(aggr)}
+            </p>
+          </div>
         </div>
         <span className="mt-1 block text-[11px] text-faint">
-          Live, on your bankroll (€{euro(bankroll)}). Each member sees the amount
-          for their own bankroll.
+          On your bankroll (€{euro(bankroll)}). Aggressive = ×5.5/4 (= 1.375×).
+          Each member sees their own amount, scaled by their play style.
         </span>
       </L>
 

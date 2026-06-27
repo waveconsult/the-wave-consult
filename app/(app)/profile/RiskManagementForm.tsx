@@ -7,10 +7,11 @@ import { updateRiskSettings, type RiskState } from "./actions";
 const field =
   "w-full rounded-xl border border-border bg-surface px-3.5 py-3 text-base font-semibold text-text mono outline-none transition focus:border-primary-bright focus:ring-2 focus:ring-primary/30";
 
-// Only two choices, no Kelly jargon. (Maps to the staking math under the hood.)
-const STRATEGIES: { value: Strategy; label: string }[] = [
-  { value: "conservative", label: "Conservative" },
-  { value: "aggressive", label: "Aggressive" },
+// Two play styles. Aggressive bets a 5.5/4 multiple of every pick — better for
+// smaller bankrolls; conservative suits larger ones.
+const STRATEGIES: { value: Strategy; label: string; hint: string }[] = [
+  { value: "conservative", label: "Conservative", hint: "Bankrolls over €10k" },
+  { value: "aggressive", label: "Aggressive", hint: "Bankrolls under €10k" },
 ];
 
 export function RiskManagementForm({ profile }: { profile: Profile }) {
@@ -57,6 +58,10 @@ export function RiskManagementForm({ profile }: { profile: Profile }) {
             );
           })}
         </div>
+        <p className="mt-1.5 text-[11px] text-faint">
+          {STRATEGIES.find((s) => s.value === strategy)?.hint} · aggressive bets
+          ×5.5/4 of every pick.
+        </p>
       </div>
 
       <div className="flex items-center justify-between gap-3 pt-1">

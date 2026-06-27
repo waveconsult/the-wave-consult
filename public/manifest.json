@@ -1,7 +1,7 @@
 {
   "name": "WaveHub",
   "short_name": "WaveHub",
-  "description": "A tennis betting analysis tool — discipline and Closing Line Value over hype. ATP & WTA analysis only. 18+. Gamble responsibly.",
+  "description": "A tennis betting analysis tool — discipline and Closing Line Value over hype. ATP analysis only. 18+. Gamble responsibly.",
   "start_url": "/bets",
   "scope": "/",
   "display": "standalone",

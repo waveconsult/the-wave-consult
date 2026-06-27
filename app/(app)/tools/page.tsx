@@ -17,10 +17,7 @@ export default async function ToolsPage() {
       <h2 className="mono mb-2.5 text-[10px] font-semibold uppercase tracking-[1.5px] text-faint">
         Staking calculator
       </h2>
-      <StakingCalculator
-        initialBankroll={profile.bankroll}
-        initialStrategy={profile.staking_strategy}
-      />
+      <StakingCalculator initialBankroll={profile.bankroll} />
 
       <h2 className="mono mb-2.5 mt-7 text-[10px] font-semibold uppercase tracking-[1.5px] text-faint">
         Resources

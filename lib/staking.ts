@@ -65,3 +65,29 @@ export function recommendStake(opts: {
 // derived from bankroll at render time, so changing bankroll updates every card.
 export const betStakeAmount = (bankroll: number, stakePct: number) =>
   bankroll * (stakePct / 100);
+
+// The analyst always enters a CONSERVATIVE stake. Aggressive players bet a
+// 5.5/4 multiple of it. Guidance: aggressive suits smaller bankrolls (< €10k),
+// conservative suits larger ones (> €10k).
+export const AGGRESSIVE_RATIO = 5.5 / 4; // = 1.375
+export const BANKROLL_THRESHOLD = 10_000;
+
+// The effective stake % a member actually plays, from the analyst's
+// conservative stake and the member's chosen play style.
+export function effectiveStakePct(
+  conservativePct: number,
+  strategy: Strategy,
+): number {
+  return strategy === "aggressive"
+    ? conservativePct * AGGRESSIVE_RATIO
+    : conservativePct;
+}
+
+// The euro amount for a member, given the analyst's conservative stake_pct.
+export function memberStakeAmount(
+  bankroll: number,
+  conservativePct: number,
+  strategy: Strategy,
+): number {
+  return bankroll * (effectiveStakePct(conservativePct, strategy) / 100);
+}

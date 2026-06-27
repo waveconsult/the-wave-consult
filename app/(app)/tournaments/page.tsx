@@ -32,7 +32,7 @@ export default async function TournamentsPage() {
 
   return (
     <>
-      <PageHeader title="Tournaments" subtitle="ATP & WTA" />
+      <PageHeader title="Tournaments" subtitle="ATP · this week & next" />
 
       {tournaments.length === 0 ? (
         <div className="card flex flex-col items-center gap-1 px-6 py-12 text-center">
