@@ -52,7 +52,7 @@ export function ChangePasswordForm() {
       <button
         type="submit"
         disabled={busy}
-        className="shrink-0 rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-primary-bright disabled:opacity-60"
+        className="shrink-0 rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-[#14110a] transition hover:bg-primary-bright disabled:opacity-60"
       >
         {busy ? "…" : "Update"}
       </button>

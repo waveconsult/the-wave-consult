@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { AuthForm } from "../AuthForm";
 
-export const metadata: Metadata = { title: "Sign up" };
+export const metadata: Metadata = { title: "Create account" };
 
 const PLAN_LABEL: Record<string, string> = {
   core: "Core",
@@ -19,15 +19,18 @@ export default async function SignupPage({
 
   return (
     <>
-      <h1 className="mb-1 font-display text-xl font-semibold text-text">
-        {planLabel ? `Join — ${planLabel}` : "Create your account"}
-      </h1>
-      <p className="mb-5 text-sm text-muted">
-        {planLabel
-          ? "Create your account and get started right away. No payment in the app."
-          : "Access starts with a free account."}
+      <p className="eyebrow text-center">
+        {planLabel ? `Membership · ${planLabel}` : "Create account"}
       </p>
-      <AuthForm mode="signup" plan={plan} />
+      <h1 className="mt-5 text-center font-display text-[clamp(34px,9vw,52px)] font-bold uppercase leading-[0.95] tracking-[-0.03em]">
+        You&apos;re in.
+      </h1>
+      <p className="mx-auto mt-5 max-w-[21rem] text-center text-[14.5px] leading-relaxed text-[#94928a]">
+        Accepted into the club. Create your account and log in across every device.
+      </p>
+      <div className="mt-10">
+        <AuthForm mode="signup" plan={plan} />
+      </div>
     </>
   );
 }

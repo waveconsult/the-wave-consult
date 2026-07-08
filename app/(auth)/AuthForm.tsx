@@ -5,7 +5,9 @@ import Link from "next/link";
 import { login, signup, type AuthState } from "./actions";
 
 const field =
-  "w-full rounded-xl border border-border bg-surface px-3.5 py-2.5 text-sm text-text placeholder:text-faint outline-none transition focus:border-primary-bright focus:ring-2 focus:ring-primary/30";
+  "w-full rounded-xl border border-white/15 bg-[#111110] px-4 py-3.5 text-[16px] text-[#f2f0e9] placeholder:text-[#605f58] outline-none transition focus:border-[#caa76b]";
+const label =
+  "mb-1.5 block text-[11px] font-bold uppercase tracking-[2px] text-[#94928a] mono";
 
 export function AuthForm({
   mode,
@@ -21,21 +23,21 @@ export function AuthForm({
   );
 
   return (
-    <form action={formAction} className="space-y-3.5">
+    <form action={formAction} className="space-y-5">
       {mode === "signup" && plan ? (
         <input type="hidden" name="plan" value={plan} />
       ) : null}
       {mode === "signup" ? (
-        <label className="block">
-          <span className="mb-1 block text-xs text-muted">
-            Username <span className="text-faint">(optional)</span>
-          </span>
+        <div>
+          <label className={label}>
+            Username <span className="normal-case text-[#605f58]">(optional)</span>
+          </label>
           <input name="username" type="text" autoComplete="username" className={field} />
-        </label>
+        </div>
       ) : null}
 
-      <label className="block">
-        <span className="mb-1 block text-xs text-muted">Email</span>
+      <div>
+        <label className={label}>Email</label>
         <input
           name="email"
           type="email"
@@ -44,10 +46,10 @@ export function AuthForm({
           placeholder="you@example.com"
           className={field}
         />
-      </label>
+      </div>
 
-      <label className="block">
-        <span className="mb-1 block text-xs text-muted">Password</span>
+      <div>
+        <label className={label}>Password</label>
         <input
           name="password"
           type="password"
@@ -57,19 +59,15 @@ export function AuthForm({
           placeholder={mode === "signup" ? "At least 8 characters" : "••••••••"}
           className={field}
         />
-      </label>
+      </div>
 
       {state?.error ? (
-        <p className="rounded-lg border border-neg/30 bg-neg/10 px-3 py-2 text-xs text-neg">
+        <p className="rounded-xl border border-[#d98f8f]/40 bg-[#d98f8f]/10 px-4 py-3 text-[13px] font-medium text-[#e7b7b7]">
           {state.error}
         </p>
       ) : null}
 
-      <button
-        type="submit"
-        disabled={pending}
-        className="w-full rounded-xl bg-primary py-2.5 text-sm font-semibold text-white transition hover:bg-primary-bright disabled:opacity-60"
-      >
+      <button type="submit" disabled={pending} className="btn-pill w-full disabled:opacity-60">
         {pending
           ? "Please wait…"
           : mode === "login"
@@ -77,18 +75,24 @@ export function AuthForm({
             : "Create account"}
       </button>
 
-      <p className="pt-1 text-center text-xs text-muted">
+      <p className="pt-1 text-center text-[13px] text-[#94928a]">
         {mode === "login" ? (
           <>
-            No account?{" "}
-            <Link href="/signup" className="text-primary-bright hover:underline">
-              Apply / sign up
+            No access yet?{" "}
+            <Link
+              href="/apply"
+              className="-my-2.5 inline-block border-b border-[#caa76b]/50 py-2.5 font-semibold text-[#f2f0e9] transition hover:border-[#caa76b]"
+            >
+              Apply
             </Link>
           </>
         ) : (
           <>
             Already have an account?{" "}
-            <Link href="/login" className="text-primary-bright hover:underline">
+            <Link
+              href="/login"
+              className="-my-2.5 inline-block border-b border-[#caa76b]/50 py-2.5 font-semibold text-[#f2f0e9] transition hover:border-[#caa76b]"
+            >
               Log in
             </Link>
           </>

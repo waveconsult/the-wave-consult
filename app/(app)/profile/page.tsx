@@ -31,7 +31,7 @@ export default async function ProfilePage() {
       </h1>
 
       <div className="mb-2 mt-2 flex items-center gap-3.5">
-        <div className="flex h-14 w-14 items-center justify-center rounded-full bg-gradient-to-br from-primary-deep to-primary-bright font-display text-xl font-bold text-white">
+        <div className="flex h-14 w-14 items-center justify-center rounded-full bg-gradient-to-br from-primary-deep to-primary-bright font-display text-xl font-bold text-[#14110a]">
           {initial}
         </div>
         <div className="min-w-0">

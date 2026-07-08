@@ -5,8 +5,8 @@ import { deleteBet } from "@/app/admin/actions";
 import { Attachment } from "./Attachment";
 import { LockedCard } from "./LockedCard";
 
-// Bet card: a betting-slip look — a purple header carrying the pick, and a
-// clean white body with the stake, the amount and the analysis.
+// Bet card: a premium "ticket" — a champagne-gold header carrying the pick,
+// over a dark club-surface body with the stake, amount and analysis.
 export function BetCard({
   bet,
   bankroll,
@@ -33,13 +33,13 @@ export function BetCard({
   const meta = bet.round ? `${tournamentLabel} · ${bet.round}` : tournamentLabel;
 
   return (
-    <article className="mb-3.5 overflow-hidden rounded-[20px] border border-border bg-white shadow-[0_14px_36px_-16px_rgba(0,0,0,0.6)]">
-      {/* purple header — the pick */}
-      <header className="flex items-center justify-between gap-3 bg-gradient-to-r from-primary-deep to-primary px-4 py-3">
-        <p className="min-w-0 truncate font-display text-[17px] font-bold leading-tight text-white">
+    <article className="mb-3.5 overflow-hidden rounded-[20px] border border-border bg-surface shadow-[0_14px_36px_-18px_rgba(0,0,0,0.7)]">
+      {/* gold header — the pick */}
+      <header className="flex items-center justify-between gap-3 bg-gradient-to-r from-[#a98b56] to-[#caa76b] px-4 py-3">
+        <p className="min-w-0 truncate font-display text-[17px] font-bold leading-tight text-[#14110a]">
           {bet.selection}
           {bet.odds != null ? (
-            <span className="mono font-bold text-white/95"> @{odds(bet.odds)}</span>
+            <span className="mono font-bold text-[#14110a]/90"> @{odds(bet.odds)}</span>
           ) : null}
         </p>
         {isAdmin ? (
@@ -48,7 +48,7 @@ export function BetCard({
             <button
               type="submit"
               aria-label="Delete bet"
-              className="shrink-0 rounded-md border border-white/25 px-1.5 py-1 text-white/80 transition hover:border-white/60 hover:text-white"
+              className="shrink-0 rounded-md border border-black/25 px-1.5 py-1 text-[#14110a]/70 transition hover:border-black/50 hover:text-[#14110a]"
             >
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14" />
@@ -58,18 +58,18 @@ export function BetCard({
         ) : null}
       </header>
 
-      {/* white body */}
+      {/* dark body */}
       <div className="p-4">
         <div className="flex items-center justify-between gap-2">
-          <p className="mono min-w-0 truncate text-[10px] uppercase tracking-wide text-[#8b8794]">
+          <p className="mono min-w-0 truncate text-[10px] uppercase tracking-wide text-muted">
             {bet.tournament?.country_flag ? `${bet.tournament.country_flag} ` : ""}
             {meta}
           </p>
           <span
             className={`mono shrink-0 rounded-md px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide ${
               isAggressive
-                ? "bg-[#6d28d9]/[0.12] text-[#6d28d9]"
-                : "border border-[#ece9f4] bg-[#f5f3fa] text-[#8b8794]"
+                ? "border border-[#caa76b]/40 bg-[#caa76b]/12 text-[#dcbd86]"
+                : "border border-border bg-surface-2 text-faint"
             }`}
           >
             {isAggressive ? "Aggressive" : "Conservative"}
@@ -102,7 +102,7 @@ export function BetCard({
         </div>
 
         {bet.reasoning ? (
-          <p className="mt-3 text-[13px] leading-relaxed text-[#5b5766]">
+          <p className="mt-3 text-[13px] leading-relaxed text-muted">
             {bet.reasoning}
           </p>
         ) : null}
@@ -129,14 +129,14 @@ function Stat({
   unit?: string;
 }) {
   return (
-    <div className="rounded-[10px] border border-[#ece9f4] bg-[#f5f3fa] px-2.5 py-2">
-      <p className="mono text-[9px] uppercase tracking-wide text-[#8b8794]">
+    <div className="rounded-[10px] border border-border bg-surface-2 px-2.5 py-2">
+      <p className="mono text-[9px] uppercase tracking-wide text-faint">
         {label}
       </p>
-      <p className="mono mt-1 text-[15px] font-bold text-[#1a1722]">
+      <p className="mono mt-1 text-[15px] font-bold text-text">
         {value}
         {unit ? (
-          <span className="text-[10px] font-medium text-[#8b8794]"> {unit}</span>
+          <span className="text-[10px] font-medium text-muted"> {unit}</span>
         ) : null}
       </p>
     </div>

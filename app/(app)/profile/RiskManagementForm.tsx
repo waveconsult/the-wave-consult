@@ -49,7 +49,7 @@ export function RiskManagementForm({ profile }: { profile: Profile }) {
                 onClick={() => setStrategy(s.value)}
                 className={`flex-1 rounded-[10px] py-2.5 text-[13px] font-semibold transition ${
                   on
-                    ? "bg-gradient-to-br from-primary-deep to-primary text-white shadow-[0_4px_14px_rgba(109,40,217,0.4)]"
+                    ? "bg-gradient-to-br from-[#a98b56] to-[#caa76b] text-[#14110a] shadow-[0_4px_14px_rgba(202,167,107,0.35)]"
                     : "text-muted"
                 }`}
               >
@@ -69,7 +69,7 @@ export function RiskManagementForm({ profile }: { profile: Profile }) {
         <button
           type="submit"
           disabled={pending}
-          className="shrink-0 rounded-xl bg-primary px-5 py-2 text-sm font-semibold text-white transition hover:bg-primary-bright disabled:opacity-60"
+          className="shrink-0 rounded-xl bg-primary px-5 py-2 text-sm font-semibold text-[#14110a] transition hover:bg-primary-bright disabled:opacity-60"
         >
           {pending ? "Saving…" : "Save"}
         </button>

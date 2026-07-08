@@ -30,7 +30,7 @@ create table public.tournaments (
   name text not null,
   location text,
   country_flag text,          -- emoji flag, e.g. '🇳🇱'
-  category text,              -- 'ATP 250', 'WTA 500', etc.
+  category text,              -- 'ATP 250', 'ATP 500', 'ATP Masters 1000', 'Grand Slam'
   surface text not null default 'Grass',
   start_date date,
   end_date date,

@@ -1,6 +1,6 @@
 # The Wave Consult
 
-A tennis betting **consulting** product (ATP & WTA) built as an installable PWA.
+A tennis betting **consulting** product (ATP men's tennis only, never WTA) built as an installable PWA.
 It is an **analysis / discipline tool — not a bookmaker.** No money is staked,
 taken, or moved inside the app. That distinction is a brand pillar and a
 compliance requirement (see [Compliance](#compliance)).

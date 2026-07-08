@@ -37,7 +37,7 @@ export function PlansView({ currentTier }: { currentTier: Tier }) {
             onClick={() => setTab(t)}
             className={`flex-1 rounded-[10px] py-2.5 text-[13px] font-semibold capitalize transition ${
               tab === t
-                ? "bg-gradient-to-br from-primary-deep to-primary text-white shadow-[0_4px_14px_rgba(109,40,217,0.4)]"
+                ? "bg-gradient-to-br from-[#a98b56] to-[#caa76b] text-[#14110a] shadow-[0_4px_14px_rgba(202,167,107,0.35)]"
                 : "text-muted"
             }`}
           >
@@ -100,7 +100,7 @@ function PremiumCard({
     <div
       className={`relative mb-3.5 overflow-hidden rounded-[20px] border p-5 ${
         plan.emphasis
-          ? "border-primary/40 bg-[linear-gradient(170deg,rgba(109,40,217,0.14),transparent_70%)]"
+          ? "border-primary/40 bg-[linear-gradient(170deg,rgba(202,167,107,0.13),transparent_70%)]"
           : "border-border"
       }`}
     >
@@ -140,7 +140,7 @@ function PremiumCard({
             disabled={pending}
             className={`block w-full rounded-[13px] py-3.5 text-sm font-semibold transition active:scale-[0.98] disabled:opacity-60 ${
               plan.emphasis
-                ? "bg-gradient-to-br from-primary-deep to-primary text-white shadow-[0_6px_20px_rgba(109,40,217,0.4)]"
+                ? "bg-gradient-to-br from-[#a98b56] to-[#caa76b] text-[#14110a] shadow-[0_6px_20px_rgba(202,167,107,0.35)]"
                 : "border border-border-strong text-text"
             }`}
           >

@@ -34,7 +34,7 @@ export function IntroSplash() {
           className="fixed inset-0 z-[100] flex flex-col items-center justify-center overflow-hidden"
           style={{
             background:
-              "radial-gradient(120% 90% at 50% 42%, rgba(109,40,217,.26), transparent 60%), var(--bg-deep)",
+              "radial-gradient(120% 90% at 50% 42%, rgba(202,167,107,.20), transparent 60%), var(--bg-deep)",
           }}
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
@@ -66,7 +66,7 @@ export function IntroSplash() {
               ease: EASE,
               times: [0, 0.5, 0.78, 1],
             }}
-            style={{ filter: "drop-shadow(0 0 38px rgba(168,85,247,.5))" }}
+            style={{ filter: "drop-shadow(0 0 38px rgba(202,167,107,.55))" }}
           >
             <Image src="/logo.png" alt="WaveHub" width={146} height={146} priority />
           </motion.div>
@@ -92,7 +92,7 @@ export function IntroSplash() {
             animate={{ opacity: 1, letterSpacing: "0.18em" }}
             transition={{ duration: 1, delay: reduce ? 0 : 1.35, ease: EASE }}
           >
-            Next Generation Sportsbetting
+            The high-income skill
           </motion.p>
         </motion.div>
       )}

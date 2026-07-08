@@ -11,7 +11,7 @@ export function WaveGlyph({ size = 30 }: { size?: number }) {
       width={size}
       height={size}
       priority
-      style={{ filter: "drop-shadow(0 0 8px rgba(139,92,246,.45))" }}
+      style={{ filter: "drop-shadow(0 0 8px rgba(202,167,107,.45))" }}
     />
   );
 }

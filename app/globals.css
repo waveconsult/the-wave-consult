@@ -1,32 +1,37 @@
 @import "tailwindcss";
 
 /* ============================================================
-   The Wave Consult — design tokens (see briefing §10)
-   Dark, premium, calm. Numbers always in mono.
+   WaveHub — premium members'-club design tokens.
+   Near-black + champagne gold, General Sans display.
+   Matches the 982x-style marketing front page 1:1.
+   Tone: high-stakes club, operators, quiet confidence.
    ============================================================ */
 :root {
-  --bg: #0b0a10;
-  --bg-deep: #08070c;
-  --surface: #15131f;
-  --surface-2: #1b1828;
-  --elevated: #221d33;
+  --bg: #0a0a09;
+  --bg-deep: #070706;
+  --surface: #141413;
+  --surface-2: #1b1a18;
+  --elevated: #232220;
 
   --border: rgba(255, 255, 255, 0.08);
   --border-strong: rgba(255, 255, 255, 0.14);
 
-  --text: #f4f2f8;
-  --muted: #9a93ad;
-  --faint: #6b6580;
+  --text: #f2f0e9;
+  --muted: #94928a;
+  --faint: #605f58;
 
-  --primary: #8b5cf6;
-  --primary-bright: #a855f7;
-  --primary-deep: #6d28d9;
+  /* champagne gold accent (front-page --gold) replaces the old violet */
+  --primary: #caa76b;
+  --primary-bright: #dcbd86;
+  --primary-deep: #a98b56;
+  --gold: #caa76b;
+  --gold-dim: #a98b56;
 
-  --pos: #4ade80;
-  --neg: #fb7185;
-  --warn: #fbbf24;
+  --pos: #6bbf7e;
+  --neg: #d98f8f;
+  --warn: #dcbd86;
 
-  --radius-card: 18px;
+  --radius-card: 16px;
 }
 
 /* Map tokens to Tailwind v4 utilities (bg-bg, text-muted, border-border, etc.) */
@@ -47,16 +52,17 @@
   --color-primary: var(--primary);
   --color-primary-bright: var(--primary-bright);
   --color-primary-deep: var(--primary-deep);
+  --color-gold: var(--gold);
 
   --color-pos: var(--pos);
   --color-neg: var(--neg);
   --color-warn: var(--warn);
 
-  --font-display: var(--font-space-grotesk), system-ui, sans-serif;
-  --font-body: var(--font-inter), system-ui, sans-serif;
+  --font-display: "General Sans", var(--font-space-grotesk), system-ui, sans-serif;
+  --font-body: "General Sans", var(--font-inter), system-ui, sans-serif;
   --font-mono: var(--font-jetbrains-mono), ui-monospace, monospace;
 
-  --radius-card: 18px;
+  --radius-card: 16px;
 }
 
 * {
@@ -70,7 +76,7 @@ html {
 
 body {
   background:
-    radial-gradient(120% 80% at 50% -10%, rgba(109, 40, 217, 0.18), transparent 60%),
+    radial-gradient(120% 70% at 50% -10%, rgba(202, 167, 107, 0.10), transparent 55%),
     var(--bg);
   color: var(--text);
   font-family: var(--font-body);
@@ -85,15 +91,63 @@ body {
   letter-spacing: -0.01em;
 }
 
-/* Reusable card surface: radius ~18px, hairline border, soft purple glow on emphasis */
+/* Reusable card surface */
 .card {
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--radius-card);
 }
 .card-emphasis {
-  border-color: var(--border-strong);
-  box-shadow: 0 0 0 1px rgba(139, 92, 246, 0.08), 0 12px 40px -16px rgba(139, 92, 246, 0.35);
+  border-color: rgba(202, 167, 107, 0.40);
+  box-shadow: 0 0 0 1px rgba(202, 167, 107, 0.10), 0 12px 40px -16px rgba(202, 167, 107, 0.30);
+}
+
+/* Gold eyebrow label, like the marketing site */
+.eyebrow {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 2.5px;
+  text-transform: uppercase;
+  color: var(--gold);
+}
+
+/* Pill buttons (front-page language): white fill inverts on hover; gold + ghost variants */
+.btn-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  font-weight: 600;
+  font-size: 14px;
+  line-height: 1;
+  padding: 14px 30px;
+  background: var(--text);
+  color: #0a0a09;
+  border: 1px solid var(--text);
+  transition: background 0.2s, color 0.2s, border-color 0.2s;
+  cursor: pointer;
+}
+.btn-pill:hover {
+  background: transparent;
+  color: var(--text);
+}
+.btn-pill-gold {
+  background: var(--gold);
+  border-color: var(--gold);
+  color: #12100b;
+}
+.btn-pill-gold:hover {
+  background: transparent;
+  color: var(--gold);
+}
+.btn-pill-ghost {
+  background: transparent;
+  color: var(--text);
+  border-color: rgba(255, 255, 255, 0.35);
+}
+.btn-pill-ghost:hover {
+  background: var(--text);
+  color: #0a0a09;
 }
 
 ::-webkit-scrollbar {
@@ -111,7 +165,25 @@ textarea {
   color-scheme: dark;
 }
 
-/* ===== Intro splash animation (briefing: app-open intro) ===== */
+/* ============================================================
+   Public shell (982x-style): near-black, off-white ink, gold
+   accent. Used by pre-login, apply and auth — matches the
+   marketing site 1:1.
+   ============================================================ */
+.public-shell {
+  background: #0a0a09;
+  color: #f2f0e9;
+  min-height: 100dvh;
+}
+.public-shell ::selection {
+  background: var(--gold);
+  color: #0a0a09;
+}
+.u-gold {
+  border-bottom: 3px solid var(--gold);
+}
+
+/* ===== Intro splash animation (app-open intro) ===== */
 @keyframes wh-pop {
   0% {
     opacity: 0;
@@ -129,10 +201,10 @@ textarea {
 @keyframes wh-glow {
   0%,
   100% {
-    filter: drop-shadow(0 0 28px rgba(139, 92, 246, 0.35));
+    filter: drop-shadow(0 0 28px rgba(202, 167, 107, 0.35));
   }
   50% {
-    filter: drop-shadow(0 0 60px rgba(168, 85, 247, 0.7));
+    filter: drop-shadow(0 0 60px rgba(220, 189, 134, 0.65));
   }
 }
 @keyframes wh-word {

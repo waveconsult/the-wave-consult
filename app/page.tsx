@@ -1,11 +1,11 @@
 import { redirect } from "next/navigation";
 import { getProfile } from "@/lib/auth";
-import { Funnel } from "@/components/funnel/Funnel";
+import { PreLogin } from "@/components/PreLogin";
 
 // Entry point. Logged-in users go to the feed; logged-out visitors see the
-// public quiz funnel (after the intro animation).
+// minimal apply-first pre-login screen (after the intro animation).
 export default async function Home() {
   const profile = await getProfile();
   if (profile) redirect("/bets");
-  return <Funnel />;
+  return <PreLogin />;
 }

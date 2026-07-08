@@ -32,7 +32,7 @@ export const metadata: Metadata = {
     template: "%s · WaveHub",
   },
   description:
-    "Turn bad habits into a high income skill. Real ATP analysis, early to the market — discipline and Closing Line Value over hype.",
+    "Turn bad habits into a high income skill. Real ATP analysis, early to the market. Discipline and value over hype.",
   manifest: "/manifest.json",
   appleWebApp: {
     capable: true,
@@ -63,6 +63,13 @@ export default function RootLayout({
       lang="en"
       className={`${spaceGrotesk.variable} ${inter.variable} ${jetbrainsMono.variable} h-full antialiased`}
     >
+      <head>
+        <link rel="preconnect" href="https://api.fontshare.com" crossOrigin="" />
+        <link
+          href="https://api.fontshare.com/v2/css?f[]=general-sans@400,500,600,700&display=swap"
+          rel="stylesheet"
+        />
+      </head>
       <body className="min-h-full">
         <IntroSplash />
         {children}
