@@ -58,9 +58,10 @@
   --color-neg: var(--neg);
   --color-warn: var(--warn);
 
-  --font-display: "General Sans", var(--font-space-grotesk), system-ui, sans-serif;
+  --font-sans: "General Sans", var(--font-inter), system-ui, sans-serif;
+  --font-display: "General Sans", var(--font-inter), system-ui, sans-serif;
   --font-body: "General Sans", var(--font-inter), system-ui, sans-serif;
-  --font-mono: var(--font-jetbrains-mono), ui-monospace, monospace;
+  --font-mono: "General Sans", var(--font-inter), system-ui, sans-serif;
 
   --radius-card: 16px;
 }
