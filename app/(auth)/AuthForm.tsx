@@ -5,7 +5,7 @@ import Link from "next/link";
 import { login, signup, type AuthState } from "./actions";
 
 const field =
-  "w-full rounded-xl border border-white/15 bg-[#111110] px-4 py-3.5 text-[16px] text-[#f2f0e9] placeholder:text-[#605f58] outline-none transition focus:border-[#caa76b]";
+  "w-full rounded-xl border border-white/15 bg-[#111110] px-4 py-3.5 text-[16px] text-[#ededee] placeholder:text-[#605f58] outline-none transition focus:border-[#cdd2d8]";
 const label =
   "mb-1.5 block text-[11px] font-bold uppercase tracking-[2px] text-[#94928a] mono";
 
@@ -81,7 +81,7 @@ export function AuthForm({
             No access yet?{" "}
             <Link
               href="/apply"
-              className="-my-2.5 inline-block border-b border-[#caa76b]/50 py-2.5 font-semibold text-[#f2f0e9] transition hover:border-[#caa76b]"
+              className="-my-2.5 inline-block border-b border-[#cdd2d8]/50 py-2.5 font-semibold text-[#ededee] transition hover:border-[#cdd2d8]"
             >
               Apply
             </Link>
@@ -91,7 +91,7 @@ export function AuthForm({
             Already have an account?{" "}
             <Link
               href="/login"
-              className="-my-2.5 inline-block border-b border-[#caa76b]/50 py-2.5 font-semibold text-[#f2f0e9] transition hover:border-[#caa76b]"
+              className="-my-2.5 inline-block border-b border-[#cdd2d8]/50 py-2.5 font-semibold text-[#ededee] transition hover:border-[#cdd2d8]"
             >
               Log in
             </Link>

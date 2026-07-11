@@ -7,7 +7,7 @@ export function PreLogin() {
     <div className="public-shell flex min-h-dvh flex-col">
       <header className="flex h-16 items-center justify-between border-b border-white/[0.07] px-6">
         <span className="font-display text-[15px] font-bold uppercase tracking-wide">
-          Wave<span className="text-[#caa76b]">hub</span>
+          Wave<span className="text-[#cdd2d8]">hub</span>
         </span>
         <Link
           href="/login"

@@ -5,7 +5,7 @@ import Link from "next/link";
 import { submitApplication, type ApplyState } from "./actions";
 
 const field =
-  "w-full rounded-xl border border-white/15 bg-[#111110] px-4 py-3.5 text-[16px] text-[#f2f0e9] placeholder:text-[#605f58] outline-none transition focus:border-[#caa76b]";
+  "w-full rounded-xl border border-white/15 bg-[#111110] px-4 py-3.5 text-[16px] text-[#ededee] placeholder:text-[#605f58] outline-none transition focus:border-[#cdd2d8]";
 const label =
   "mb-1.5 block text-left text-[11px] font-bold uppercase tracking-[2px] text-[#94928a] mono";
 
@@ -30,7 +30,7 @@ export function ApplyForm({ plan }: { plan?: string }) {
         </p>
         <Link
           href="/"
-          className="-my-2.5 mt-8 inline-block border-b border-[#caa76b]/50 py-2.5 text-[13px] font-semibold transition hover:border-[#caa76b]"
+          className="-my-2.5 mt-8 inline-block border-b border-[#cdd2d8]/50 py-2.5 text-[13px] font-semibold transition hover:border-[#cdd2d8]"
         >
           ← Back
         </Link>

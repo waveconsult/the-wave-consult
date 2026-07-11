@@ -8,7 +8,7 @@ export function LockedCard() {
     <article className="relative mb-3.5 overflow-hidden rounded-[20px] border border-border bg-surface shadow-[0_14px_36px_-18px_rgba(0,0,0,0.7)]">
       {/* blurred placeholder — no real data */}
       <div className="select-none blur-[5px]" aria-hidden="true">
-        <header className="bg-gradient-to-r from-[#a98b56] to-[#caa76b] px-4 py-3">
+        <header className="bg-gradient-to-r from-[#9aa0a8] to-[#cdd2d8] px-4 py-3">
           <p className="font-display text-[17px] font-bold leading-tight text-[#14110a]">
             Hidden pick ••••••
           </p>
@@ -39,7 +39,7 @@ export function LockedCard() {
 
       {/* lock overlay */}
       <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-black/45 px-6 text-center backdrop-blur-[1px]">
-        <span className="flex h-11 w-11 items-center justify-center rounded-full border border-[#caa76b]/40 bg-elevated text-[#caa76b]">
+        <span className="flex h-11 w-11 items-center justify-center rounded-full border border-[#cdd2d8]/40 bg-elevated text-[#cdd2d8]">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
             <rect x="4.5" y="10.5" width="15" height="10" rx="2" />
             <path d="M8 10.5V7a4 4 0 0 1 8 0v3.5" />

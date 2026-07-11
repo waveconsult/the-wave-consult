@@ -77,7 +77,7 @@ export function BottomNav() {
                     }`}
                     style={{
                       boxShadow: active
-                        ? "0 6px 20px rgba(202,167,107,0.35)"
+                        ? "0 6px 20px rgba(205,210,216,0.35)"
                         : "0 4px 14px rgba(0,0,0,0.4)",
                     }}
                   >

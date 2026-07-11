@@ -15,8 +15,8 @@ export default async function AppLayout({
     <>
       {/* ambient aurora — adds depth behind the whole app */}
       <div className="pointer-events-none fixed inset-0 -z-10 overflow-hidden">
-        <div className="absolute -top-28 left-1/2 h-72 w-72 -translate-x-1/2 rounded-full bg-[#caa76b]/12 blur-[120px]" />
-        <div className="absolute bottom-[-10%] right-[-25%] h-64 w-64 rounded-full bg-[#caa76b]/[0.07] blur-[130px]" />
+        <div className="absolute -top-28 left-1/2 h-72 w-72 -translate-x-1/2 rounded-full bg-[#cdd2d8]/12 blur-[120px]" />
+        <div className="absolute bottom-[-10%] right-[-25%] h-64 w-64 rounded-full bg-[#cdd2d8]/[0.07] blur-[130px]" />
       </div>
 
       <div className="mx-auto flex min-h-dvh max-w-md flex-col">

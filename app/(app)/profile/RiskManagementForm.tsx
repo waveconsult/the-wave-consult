@@ -49,7 +49,7 @@ export function RiskManagementForm({ profile }: { profile: Profile }) {
                 onClick={() => setStrategy(s.value)}
                 className={`flex-1 rounded-[10px] py-2.5 text-[13px] font-semibold transition ${
                   on
-                    ? "bg-gradient-to-br from-[#a98b56] to-[#caa76b] text-[#14110a] shadow-[0_4px_14px_rgba(202,167,107,0.35)]"
+                    ? "bg-gradient-to-br from-[#9aa0a8] to-[#cdd2d8] text-[#14110a] shadow-[0_4px_14px_rgba(205,210,216,0.35)]"
                     : "text-muted"
                 }`}
               >

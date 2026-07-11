@@ -13,7 +13,7 @@ export default function AuthLayout({
           href="/"
           className="font-display text-[15px] font-bold uppercase tracking-wide"
         >
-          Wave<span className="text-[#caa76b]">hub</span>
+          Wave<span className="text-[#cdd2d8]">hub</span>
         </Link>
         <Link href="/apply" className="btn-pill btn-pill-gold !px-5 !py-2 text-[12px]">
           Apply

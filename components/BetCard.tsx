@@ -35,7 +35,7 @@ export function BetCard({
   return (
     <article className="mb-3.5 overflow-hidden rounded-[20px] border border-border bg-surface shadow-[0_14px_36px_-18px_rgba(0,0,0,0.7)]">
       {/* gold header — the pick */}
-      <header className="flex items-center justify-between gap-3 bg-gradient-to-r from-[#a98b56] to-[#caa76b] px-4 py-3">
+      <header className="flex items-center justify-between gap-3 bg-gradient-to-r from-[#9aa0a8] to-[#cdd2d8] px-4 py-3">
         <p className="min-w-0 truncate font-display text-[17px] font-bold leading-tight text-[#14110a]">
           {bet.selection}
           {bet.odds != null ? (
@@ -68,7 +68,7 @@ export function BetCard({
           <span
             className={`mono shrink-0 rounded-md px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide ${
               isAggressive
-                ? "border border-[#caa76b]/40 bg-[#caa76b]/12 text-[#dcbd86]"
+                ? "border border-[#cdd2d8]/40 bg-[#cdd2d8]/12 text-[#eef1f4]"
                 : "border border-border bg-surface-2 text-faint"
             }`}
           >

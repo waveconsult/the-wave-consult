@@ -23,7 +23,7 @@ export default async function ApplyPage({
           href="/"
           className="font-display text-[15px] font-bold uppercase tracking-wide"
         >
-          Wave<span className="text-[#caa76b]">hub</span>
+          Wave<span className="text-[#cdd2d8]">hub</span>
         </Link>
         <Link
           href="/login"

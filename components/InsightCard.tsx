@@ -30,7 +30,7 @@ export function InsightCard({
   return (
     <article className="mb-3.5 overflow-hidden rounded-[20px] border border-border bg-surface shadow-[0_14px_36px_-18px_rgba(0,0,0,0.7)]">
       {/* gold header */}
-      <header className="flex items-start justify-between gap-3 bg-gradient-to-r from-[#a98b56] to-[#caa76b] px-4 py-3">
+      <header className="flex items-start justify-between gap-3 bg-gradient-to-r from-[#9aa0a8] to-[#cdd2d8] px-4 py-3">
         <div className="min-w-0">
           <p className="text-[11px] font-medium text-[#14110a]/70">{meta}</p>
           <h3 className="mt-0.5 font-display text-[17px] font-bold leading-tight text-[#14110a]">
