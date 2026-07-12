@@ -86,6 +86,9 @@ export interface Application {
   requested_tier: Exclude<Tier, "none"> | null;
   note: string | null;
   status: ApplicationStatus;
+  granted_tier: Exclude<Tier, "none"> | null;
+  stripe_session_id: string | null;
+  paid_at: string | null;
   created_at: string;
 }
 

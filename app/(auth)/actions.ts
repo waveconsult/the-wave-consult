@@ -34,7 +34,6 @@ export async function signup(
 ): Promise<AuthState> {
   const { email, password } = readCredentials(formData);
   const username = String(formData.get("username") ?? "").trim();
-  const plan = String(formData.get("plan") ?? "");
 
   if (!email || !password) return { error: "Email and password are required." };
   if (password.length < 8)
@@ -49,12 +48,24 @@ export async function signup(
   if (error) return { error: error.message };
 
   // The profile row is auto-created by the on_auth_user_created trigger.
-  // If the visitor arrived with a chosen plan (?plan=), set it now.
-  // NOTE: no payment yet (Stripe deferred) — this grants access immediately.
-  if ((plan === "core" || plan === "private") && data.user) {
+  // Grant a tier ONLY if this email has a paid application (a Stripe checkout
+  // completed for it). If they paid before signing up, we grant it here; if
+  // they signed up first, the Stripe webhook grants it the moment payment lands.
+  if (data.user) {
     try {
       const admin = createAdminClient();
-      await admin.from("profiles").update({ tier: plan }).eq("id", data.user.id);
+      const { data: paid } = await admin
+        .from("applications")
+        .select("granted_tier")
+        .eq("email", email.trim().toLowerCase())
+        .not("paid_at", "is", null)
+        .order("paid_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      const tier = paid?.granted_tier;
+      if (tier === "core" || tier === "private") {
+        await admin.from("profiles").update({ tier }).eq("id", data.user.id);
+      }
     } catch {
       // Service-role key not set — skip; operator can grant tier manually.
     }

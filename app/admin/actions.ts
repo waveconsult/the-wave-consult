@@ -3,6 +3,8 @@
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
+import { inviteApplicant } from "@/lib/onboarding";
 import { broadcast } from "@/lib/push";
 import { parseDecimal } from "@/lib/format";
 import type { InsightStatRow } from "@/lib/types";
@@ -316,4 +318,47 @@ export async function createResource(
 
   revalidatePath("/", "layout");
   redirect("/tools");
+}
+
+// ---- Applications: accept → create a Stripe checkout + email the link ----
+export async function acceptApplication(formData: FormData): Promise<void> {
+  const supabase = await createClient();
+  const admin = await requireAdminUser(supabase);
+  if (!admin) return;
+
+  const id = str(formData.get("id"));
+  const tier: "core" | "private" =
+    str(formData.get("tier")) === "private" ? "private" : "core";
+  if (!id) return;
+
+  const db = createAdminClient();
+  const { data: app } = await db
+    .from("applications")
+    .select("email")
+    .eq("id", id)
+    .single();
+  if (!app?.email) return;
+
+  try {
+    // Manual accept → calmer acceptance email (urgency: false).
+    await inviteApplicant({ applicationId: id, email: app.email, tier, urgency: false });
+  } catch {
+    // Stripe/email not configured yet — leave the application untouched.
+  }
+
+  revalidatePath("/admin");
+}
+
+// ---- Applications: decline ----
+export async function declineApplication(formData: FormData): Promise<void> {
+  const supabase = await createClient();
+  const admin = await requireAdminUser(supabase);
+  if (!admin) return;
+
+  const id = str(formData.get("id"));
+  if (!id) return;
+
+  const db = createAdminClient();
+  await db.from("applications").update({ status: "declined" }).eq("id", id);
+  revalidatePath("/admin");
 }

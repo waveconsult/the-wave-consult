@@ -12,13 +12,18 @@ const PLAN_LABEL: Record<string, string> = {
 export default async function SignupPage({
   searchParams,
 }: {
-  searchParams: Promise<{ plan?: string }>;
+  searchParams: Promise<{ plan?: string; welcome?: string }>;
 }) {
-  const { plan } = await searchParams;
+  const { plan, welcome } = await searchParams;
   const planLabel = plan ? PLAN_LABEL[plan] : undefined;
 
   return (
     <>
+      {welcome ? (
+        <p className="mb-6 rounded-xl border border-[#cdd2d8]/40 bg-[#cdd2d8]/10 px-4 py-3 text-center text-[13px] font-medium text-[#eef1f4]">
+          ✓ Payment received — create your account to get in.
+        </p>
+      ) : null}
       <p className="eyebrow text-center">
         {planLabel ? `Membership · ${planLabel}` : "Create account"}
       </p>
