@@ -56,7 +56,7 @@ export async function signup(
       const admin = createAdminClient();
       const { data: paid } = await admin
         .from("applications")
-        .select("granted_tier")
+        .select("granted_tier, stripe_customer_id, stripe_subscription_id")
         .eq("email", email.trim().toLowerCase())
         .not("paid_at", "is", null)
         .order("paid_at", { ascending: false })
@@ -64,7 +64,15 @@ export async function signup(
         .maybeSingle();
       const tier = paid?.granted_tier;
       if (tier === "core" || tier === "private") {
-        await admin.from("profiles").update({ tier }).eq("id", data.user.id);
+        await admin
+          .from("profiles")
+          .update({
+            tier,
+            stripe_customer_id: paid?.stripe_customer_id ?? null,
+            stripe_subscription_id: paid?.stripe_subscription_id ?? null,
+            subscription_status: "active",
+          })
+          .eq("id", data.user.id);
       }
     } catch {
       // Service-role key not set — skip; operator can grant tier manually.

@@ -17,10 +17,12 @@ export async function inviteApplicant(opts: {
   const { applicationId, email, tier, urgency = false } = opts;
 
   const session = await getStripe().checkout.sessions.create({
-    mode: "payment",
+    mode: "subscription",
     line_items: [{ price: priceForTier(tier), quantity: 1 }],
     customer_email: email,
     metadata: { application_id: applicationId, tier, email },
+    subscription_data: { metadata: { application_id: applicationId, tier, email } },
+    allow_promotion_codes: true,
     success_url: `${SITE}/signup?welcome=1`,
     cancel_url: `${SITE}/apply`,
     // Stripe checkout sessions already expire after 24h — the urgency email

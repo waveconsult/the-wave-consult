@@ -1,52 +1,128 @@
 import { NextResponse } from "next/server";
 import type Stripe from "stripe";
-import { getStripe } from "@/lib/stripe";
+import { getStripe, tierForPrice } from "@/lib/stripe";
 import { createAdminClient } from "@/lib/supabase/admin";
 
-// Stripe calls this endpoint after a payment. It's public (Stripe is not a
-// logged-in user) but authenticated by the webhook signature. On a completed
-// checkout we mark the application paid and, if the member already has an
-// account, grant their tier immediately. Otherwise the tier is granted when
-// they sign up with the same email (see app/(auth)/actions.ts).
+// Stripe calls this endpoint after subscription events. It's public (Stripe is
+// not a logged-in user) but authenticated by the webhook signature. This is the
+// ONLY place membership access (profiles.tier) is granted or revoked, so
+// Supabase always reflects who currently has access.
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
+
+type Tier = "core" | "private";
+type Admin = ReturnType<typeof createAdminClient>;
+
+const ACTIVE = new Set(["active", "trialing"]);
+
+function tierFromMeta(meta: Stripe.Metadata | undefined | null): Tier | null {
+  const t = meta?.tier;
+  return t === "core" || t === "private" ? t : null;
+}
+
+// current_period_end lives on the subscription (older API) or on its first item
+// (newer API) — read both defensively.
+function periodEndIso(sub: Stripe.Subscription): string | null {
+  const s = sub as unknown as {
+    current_period_end?: number;
+    items?: { data?: Array<{ current_period_end?: number }> };
+  };
+  const secs = s.current_period_end ?? s.items?.data?.[0]?.current_period_end;
+  return typeof secs === "number" ? new Date(secs * 1000).toISOString() : null;
+}
+
+async function findProfileId(
+  admin: Admin,
+  keys: { userId?: string | null; customerId?: string | null; email?: string | null },
+): Promise<string | null> {
+  if (keys.userId) return keys.userId;
+  if (keys.customerId) {
+    const { data } = await admin
+      .from("profiles")
+      .select("id")
+      .eq("stripe_customer_id", keys.customerId)
+      .maybeSingle();
+    if (data?.id) return data.id;
+  }
+  if (keys.email) {
+    const { data } = await admin
+      .from("profiles")
+      .select("id")
+      .eq("email", keys.email.toLowerCase())
+      .maybeSingle();
+    if (data?.id) return data.id;
+  }
+  return null;
+}
+
+const idOf = (v: string | { id: string } | null | undefined): string | null =>
+  typeof v === "string" ? v : v?.id ?? null;
 
 export async function POST(req: Request) {
   const secret = process.env.STRIPE_WEBHOOK_SECRET;
   if (!secret) {
     return NextResponse.json({ error: "Webhook not configured." }, { status: 500 });
   }
-
   const sig = req.headers.get("stripe-signature");
   if (!sig) {
     return NextResponse.json({ error: "Missing signature." }, { status: 400 });
   }
 
-  // Raw body is required for signature verification.
   const body = await req.text();
+  const stripe = getStripe();
 
   let event: Stripe.Event;
   try {
-    event = getStripe().webhooks.constructEvent(body, sig, secret);
+    event = stripe.webhooks.constructEvent(body, sig, secret);
   } catch {
     return NextResponse.json({ error: "Invalid signature." }, { status: 400 });
   }
 
-  if (event.type === "checkout.session.completed") {
-    const session = event.data.object as Stripe.Checkout.Session;
-    const meta = session.metadata ?? {};
-    const applicationId = meta.application_id;
-    const tier = meta.tier === "private" ? "private" : meta.tier === "core" ? "core" : null;
-    const email = (session.customer_details?.email ?? meta.email ?? "")
-      .toString()
-      .trim()
-      .toLowerCase();
+  const admin = createAdminClient();
 
-    if (tier) {
-      const admin = createAdminClient();
+  try {
+    // ── New subscription paid ────────────────────────────────────────────
+    if (event.type === "checkout.session.completed") {
+      const session = event.data.object as Stripe.Checkout.Session;
+      if (session.mode !== "subscription") {
+        return NextResponse.json({ received: true });
+      }
+      const meta = session.metadata ?? {};
+      const customerId = idOf(session.customer);
+      const subId = idOf(session.subscription);
+      const email = (session.customer_details?.email ?? meta.email ?? "")
+        .toString()
+        .trim()
+        .toLowerCase();
 
-      // Mark the application as paid.
-      if (applicationId) {
+      const sub = subId ? await stripe.subscriptions.retrieve(subId) : null;
+      const tier: Tier | null =
+        tierFromMeta(meta) ??
+        tierFromMeta(sub?.metadata) ??
+        tierForPrice(sub?.items.data[0]?.price.id);
+
+      // Attach the payment to the member's profile (grant access).
+      const profileId = await findProfileId(admin, {
+        userId: meta.user_id,
+        customerId,
+        email: email || null,
+      });
+      if (profileId && tier) {
+        await admin
+          .from("profiles")
+          .update({
+            tier,
+            stripe_customer_id: customerId,
+            stripe_subscription_id: subId,
+            subscription_status: sub?.status ?? "active",
+            current_period_end: sub ? periodEndIso(sub) : null,
+          })
+          .eq("id", profileId);
+      }
+
+      // Record on the application (admin-invite flow); the Stripe ids let us
+      // attach the subscription at signup if the account doesn't exist yet.
+      if (meta.application_id) {
         await admin
           .from("applications")
           .update({
@@ -54,23 +130,46 @@ export async function POST(req: Request) {
             granted_tier: tier,
             paid_at: new Date().toISOString(),
             stripe_session_id: session.id,
+            stripe_customer_id: customerId,
+            stripe_subscription_id: subId,
           })
-          .eq("id", applicationId);
-      }
-
-      // If a profile already exists for this email, grant access now. If not,
-      // the grant happens at signup (which looks up the paid application).
-      if (email) {
-        const { data: profile } = await admin
-          .from("profiles")
-          .select("id")
-          .eq("email", email)
-          .maybeSingle();
-        if (profile?.id) {
-          await admin.from("profiles").update({ tier }).eq("id", profile.id);
-        }
+          .eq("id", meta.application_id);
       }
     }
+
+    // ── Renewal / cancellation / status change ───────────────────────────
+    else if (
+      event.type === "customer.subscription.updated" ||
+      event.type === "customer.subscription.deleted"
+    ) {
+      const sub = event.data.object as Stripe.Subscription;
+      const customerId = idOf(sub.customer);
+      const tier =
+        tierFromMeta(sub.metadata) ?? tierForPrice(sub.items.data[0]?.price.id);
+      const profileId = await findProfileId(admin, {
+        userId: sub.metadata?.user_id,
+        customerId,
+      });
+
+      if (profileId) {
+        const canceled = event.type === "customer.subscription.deleted";
+        const active = !canceled && ACTIVE.has(sub.status);
+        await admin
+          .from("profiles")
+          .update({
+            // Access follows the subscription: keep the plan while active,
+            // drop to 'none' the moment it lapses or is cancelled.
+            tier: active ? tier ?? undefined : "none",
+            subscription_status: canceled ? "canceled" : sub.status,
+            stripe_subscription_id: sub.id,
+            current_period_end: periodEndIso(sub),
+          })
+          .eq("id", profileId);
+      }
+    }
+  } catch {
+    // Return 500 so Stripe retries the delivery.
+    return NextResponse.json({ error: "Handler error." }, { status: 500 });
   }
 
   return NextResponse.json({ received: true });

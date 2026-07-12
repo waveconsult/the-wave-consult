@@ -2,7 +2,7 @@
 
 import { useActionState, useState } from "react";
 import type { Tier } from "@/lib/types";
-import { joinTier, type JoinState } from "./actions";
+import { startCheckout, type JoinState } from "./actions";
 
 type Tab = "premium" | "free";
 
@@ -77,7 +77,7 @@ export function PlansView({ currentTier }: { currentTier: Tier }) {
       )}
 
       <p className="mx-2 mt-4 text-center text-[12px] leading-relaxed text-faint">
-        Billed yearly. No money is processed in the app.
+        Billed yearly · secure checkout &amp; renewals handled by Stripe.
       </p>
     </>
   );
@@ -91,7 +91,7 @@ function PremiumCard({
   currentTier: Tier;
 }) {
   const [state, formAction, pending] = useActionState<JoinState, FormData>(
-    joinTier,
+    startCheckout,
     { status: "idle" },
   );
   const isCurrent = currentTier === plan.tier;
@@ -128,10 +128,6 @@ function PremiumCard({
         <div className="rounded-xl border border-pos/30 bg-pos/10 py-3 text-center text-sm font-semibold text-pos">
           Your current plan
         </div>
-      ) : state.status === "ok" ? (
-        <div className="rounded-xl border border-pos/30 bg-pos/10 px-4 py-3 text-center text-[13px] text-pos">
-          Welcome to {plan.name}! Your access is active.
-        </div>
       ) : (
         <form action={formAction}>
           <input type="hidden" name="tier" value={plan.tier} />
@@ -144,7 +140,7 @@ function PremiumCard({
                 : "border border-border-strong text-text"
             }`}
           >
-            {pending ? "One moment…" : "Join now"}
+            {pending ? "Redirecting…" : `Subscribe to ${plan.name}`}
           </button>
           {state.status === "error" && (
             <p className="mt-2 text-center text-xs text-neg">{state.message}</p>

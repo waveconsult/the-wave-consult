@@ -32,3 +32,14 @@ export function priceForTier(tier: "core" | "private"): string {
   }
   return id;
 }
+
+// Reverse of priceForTier — used by the webhook as a fallback when a
+// subscription event doesn't carry the tier in metadata.
+export function tierForPrice(
+  priceId: string | null | undefined,
+): "core" | "private" | null {
+  if (!priceId) return null;
+  if (priceId === process.env.STRIPE_PRICE_CORE) return "core";
+  if (priceId === process.env.STRIPE_PRICE_PRIVATE) return "private";
+  return null;
+}

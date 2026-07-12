@@ -7,6 +7,7 @@ import { RiskManagementForm } from "./RiskManagementForm";
 import { ChangePasswordForm } from "./ChangePasswordForm";
 import { NotificationToggle } from "@/components/NotificationToggle";
 import { signout } from "@/app/(auth)/actions";
+import { manageSubscription } from "../plans/actions";
 
 export const metadata: Metadata = { title: "Profile" };
 
@@ -46,9 +47,17 @@ export default async function ProfilePage() {
         <p className="font-display text-base font-bold text-text">
           {TIER_LABEL[profile.tier] ?? "Free"}
         </p>
-        <Link href="/plans" className="text-[11px] font-semibold text-primary-bright">
-          {profile.tier === "none" ? "Upgrade →" : "Manage →"}
-        </Link>
+        {profile.tier === "none" ? (
+          <Link href="/plans" className="text-[11px] font-semibold text-primary-bright">
+            Upgrade →
+          </Link>
+        ) : (
+          <form action={manageSubscription}>
+            <button type="submit" className="text-[11px] font-semibold text-primary-bright">
+              Manage →
+            </button>
+          </form>
+        )}
       </div>
 
       {/* Track record — real, settled picks since join */}
