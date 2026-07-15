@@ -54,7 +54,7 @@ const TOTAL = QUESTIONS.length + 1; // 4 questions + email
 
 export function QuizFlow() {
   const [sessionId] = useState(() => crypto.randomUUID());
-  const [stage, setStage] = useState<"q" | "email" | "result">("q");
+  const [stage, setStage] = useState<"intro" | "q" | "email" | "result">("intro");
   const [qIndex, setQIndex] = useState(0);
   const [answers, setAnswers] = useState<QuizAnswers>({});
   const [email, setEmail] = useState("");
@@ -99,7 +99,7 @@ export function QuizFlow() {
       </div>
 
       {/* Progress */}
-      {stage !== "result" && (
+      {stage !== "result" && stage !== "intro" && (
         <div className="mb-8">
           <div className="h-1.5 w-full overflow-hidden rounded-full bg-surface">
             <div
@@ -109,6 +109,28 @@ export function QuizFlow() {
           </div>
           <p className="mt-2 text-center text-[11px] uppercase tracking-widest text-muted">
             Step {stepNumber} of {TOTAL}
+          </p>
+        </div>
+      )}
+
+      {/* Intro / hook */}
+      {stage === "intro" && (
+        <div className="text-center">
+          <p className="mb-3 text-[11px] uppercase tracking-[0.2em] text-primary-bright">
+            60-second quiz
+          </p>
+          <h1 className="mb-4 font-display text-[32px] font-bold leading-[1.1] text-text">
+            Betting with an edge —<br />or just gambling?
+          </h1>
+          <p className="mx-auto mb-8 max-w-sm text-[15px] leading-relaxed text-muted">
+            Answer 5 quick questions and get a free ATP value read — and find out
+            if WaveHub is the edge you&apos;re missing.
+          </p>
+          <button onClick={() => setStage("q")} className="btn-pill w-full">
+            Start the quiz →
+          </button>
+          <p className="mt-4 text-[12px] text-faint">
+            No signup to start · free value read at the end
           </p>
         </div>
       )}
