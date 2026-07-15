@@ -6,7 +6,7 @@ import { NextResponse, type NextRequest } from "next/server";
 // Middleware). Keep logic light — this is an optimistic check, not the only
 // authorization layer (RLS + per-page checks remain the source of truth).
 
-const PUBLIC_PREFIXES = ["/login", "/signup", "/auth", "/apply", "/api"];
+const PUBLIC_PREFIXES = ["/login", "/signup", "/auth", "/apply", "/quiz", "/api"];
 
 function isPublic(pathname: string) {
   if (pathname === "/") return true;
