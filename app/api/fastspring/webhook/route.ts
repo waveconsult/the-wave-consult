@@ -195,7 +195,22 @@ export async function POST(req: Request) {
 
   if (!verifyFastSpringSignature(rawBody, signature)) {
     // Fails closed when the secret is unset or the digest doesn't match.
-    return NextResponse.json({ error: "Invalid signature." }, { status: 401 });
+    //
+    // Two very different causes produce the same 401, and telling them apart
+    // otherwise costs a round trip each time:
+    //   signaturePresent false -> FastSpring is not signing at all, i.e. the
+    //     HMAC SHA256 Secret field on the webhook is empty. Fix it there.
+    //   signaturePresent true  -> both sides have a secret but they differ.
+    // Booleans only: neither the secret nor the received signature is echoed,
+    // so this reveals nothing an attacker could use to forge a signature.
+    return NextResponse.json(
+      {
+        error: "Invalid signature.",
+        signaturePresent: Boolean(signature),
+        secretConfigured: Boolean(process.env.FASTSPRING_WEBHOOK_SECRET),
+      },
+      { status: 401 },
+    );
   }
 
   let events: FsEvent[];
