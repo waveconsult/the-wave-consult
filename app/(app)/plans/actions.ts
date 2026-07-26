@@ -29,6 +29,21 @@ export async function startCheckout(
     return { status: "error", message: "Invalid plan." };
   }
 
+  // This action is the Stripe path only; with FastSpring the client renders
+  // FastSpringCheckout instead and never submits this form. Reaching it while
+  // the server says "fastspring" means the two disagree — NEXT_PUBLIC_ vars are
+  // inlined into the client bundle at BUILD time, so setting the variable
+  // without redeploying leaves a stale bundle behind. Say that, instead of
+  // letting getStripe() below fail with a misleading "STRIPE_SECRET_KEY is not
+  // set" that points at the wrong problem entirely.
+  if (PROVIDER === "fastspring") {
+    return {
+      status: "error",
+      message:
+        "Checkout is being updated — please reload the page. (If this persists: the deployment needs rebuilding after the payment provider change.)",
+    };
+  }
+
   const supabase = await createClient();
   const {
     data: { user },
