@@ -82,6 +82,21 @@ async function findProfileId(
   return null;
 }
 
+// Supabase's update() resolves with an { error } object instead of throwing, so
+// an unchecked write fails silently and the webhook still answers 200 — the
+// payment looks handled while access was never granted. Make every write loud.
+async function must<T extends { error: unknown }>(
+  what: string,
+  op: PromiseLike<T>,
+): Promise<T> {
+  const res = await op;
+  if (res.error) {
+    const e = res.error as { message?: string; code?: string };
+    throw new Error(`${what}: ${e.code ?? ""} ${e.message ?? JSON.stringify(res.error)}`.trim());
+  }
+  return res;
+}
+
 // ── Initial purchase: the order carries the buyer email + our checkout tags,
 // so this is where we can also resolve the member by email and record the
 // admin-invite application. ────────────────────────────────────────────────
@@ -104,7 +119,9 @@ async function handleOrderCompleted(admin: Admin, data: FsData) {
   });
 
   if (profileId) {
-    await admin
+    await must(
+      "profiles update (order.completed)",
+      admin
       .from("profiles")
       .update({
         tier: "member",
@@ -113,13 +130,16 @@ async function handleOrderCompleted(admin: Admin, data: FsData) {
         fastspring_subscription_id: subId,
         subscription_status: "active",
       })
-      .eq("id", profileId);
+      .eq("id", profileId),
+    );
   }
 
   // admin-invite flow: member paid before the account exists — keep the ids on
   // the application so they can be attached at signup.
   if (tags.application_id) {
-    await admin
+    await must(
+      "applications update (order.completed)",
+      admin
       .from("applications")
       .update({
         status: "accepted",
@@ -129,7 +149,8 @@ async function handleOrderCompleted(admin: Admin, data: FsData) {
         fastspring_account_id: accountId,
         fastspring_subscription_id: subId,
       })
-      .eq("id", tags.application_id);
+      .eq("id", tags.application_id),
+    );
   }
 }
 
@@ -150,7 +171,9 @@ async function handleSubscription(admin: Admin, type: string, data: FsData) {
   const deactivated = type === "subscription.deactivated";
   const stillActive = !deactivated && ACTIVE_STATES.has(data.state ?? "");
 
-  await admin
+  await must(
+    `profiles update (${type})`,
+    admin
     .from("profiles")
     .update({
       // Access follows the subscription: stay a member while active (including
@@ -162,7 +185,8 @@ async function handleSubscription(admin: Admin, type: string, data: FsData) {
       fastspring_subscription_id: subId,
       current_period_end: periodEndIso(data.next),
     })
-    .eq("id", profileId);
+    .eq("id", profileId),
+  );
 }
 
 export async function POST(req: Request) {
@@ -184,10 +208,15 @@ export async function POST(req: Request) {
 
   const admin = createAdminClient();
 
+  // Which event we are on, so a failure can name it. FastSpring batches events,
+  // and "one of them failed" is not enough to act on.
+  let current = "";
+
   try {
     for (const event of events) {
       const data = event.data;
       if (!data) continue;
+      current = event.type ?? "unknown";
 
       // Drop test-store events once we're pointed at the live storefront, so a
       // leftover test webhook can never hand out a real membership.
@@ -209,9 +238,21 @@ export async function POST(req: Request) {
           break;
       }
     }
-  } catch {
-    // 500 so FastSpring retries the batch. Handlers are idempotent upserts.
-    return NextResponse.json({ error: "Handler error." }, { status: 500 });
+  } catch (e) {
+    // This used to swallow the error and return a bare 500, which showed up in
+    // FastSpring as "Failed, will be retried" with nothing to act on. Put the
+    // reason in the response body: FastSpring displays it in the webhook log,
+    // so the cause is visible without digging through platform logs.
+    //
+    // Safe to include — this point is only reachable after the HMAC signature
+    // has been verified, so nobody but FastSpring can see it.
+    const detail = e instanceof Error ? e.message : String(e);
+    console.error(`[fastspring] ${current} failed:`, e);
+    // Still a 500 so FastSpring retries the batch; handlers are idempotent.
+    return NextResponse.json(
+      { error: "Handler error.", event: current, detail },
+      { status: 500 },
+    );
   }
 
   return NextResponse.json({ received: true });
