@@ -30,12 +30,12 @@ const FEATURES = [
   "Private live-info chat",
 ];
 
-// The 6-month plan is the default we steer people to.
-// Badge copy must stay true to lib/plans.ts: since the 2026-07-26 repricing the
-// yearly plan really is the cheapest per month (€42 vs €50 on renewal), so
-// "Best value" would now be accurate for "1y" — but NOT for whichever plan
-// merely carries the emphasis. Check the numbers before changing this label.
-const RECOMMENDED: Plan = "6m";
+// The yearly plan carries the emphasis and the "Best value" badge. That claim
+// is only true because of the numbers in lib/plans.ts: on renewal it works out
+// at €42/month against €50 for the shorter terms. If those change so that the
+// yearly plan is no longer the cheapest per month, this badge becomes a false
+// claim — move the emphasis or change the wording, do not leave it as is.
+const RECOMMENDED: Plan = "1y";
 
 export function PlansView({
   currentTier,
@@ -170,7 +170,7 @@ function PlanCard({
     >
       {emphasis && (
         <span className="mono absolute right-4 top-4 rounded-md border border-primary/30 bg-primary/15 px-2 py-1 text-[9px] font-bold uppercase tracking-widest text-primary-bright">
-          Recommended
+          Best value
         </span>
       )}
       <h3 className="font-display text-xl font-bold text-text">{entry.name}</h3>

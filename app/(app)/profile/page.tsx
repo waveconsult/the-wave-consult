@@ -5,6 +5,7 @@ import { getTrackRecord } from "@/lib/data";
 import { euro } from "@/lib/format";
 import { RiskManagementForm } from "./RiskManagementForm";
 import { ChangePasswordForm } from "./ChangePasswordForm";
+import { DeleteAccountForm } from "./DeleteAccountForm";
 import { NotificationToggle } from "@/components/NotificationToggle";
 import { signout } from "@/app/(auth)/actions";
 import { manageSubscription } from "../plans/actions";
@@ -13,8 +14,7 @@ export const metadata: Metadata = { title: "Profile" };
 
 const TIER_LABEL: Record<string, string> = {
   none: "Free",
-  core: "Core",
-  private: "Private",
+  member: "Member",
 };
 
 export default async function ProfilePage() {
@@ -116,6 +116,15 @@ export default async function ProfilePage() {
           </Link>
         </>
       ) : null}
+
+      {/* Danger zone */}
+      <Eyebrow>Danger zone</Eyebrow>
+      <div className="card flex items-center justify-between gap-3 p-4">
+        <DeleteAccountForm
+          email={profile.email}
+          hasSubscription={profile.tier !== "none"}
+        />
+      </div>
 
       <form action={signout} className="mt-6">
         <button

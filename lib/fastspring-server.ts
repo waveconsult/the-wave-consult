@@ -110,6 +110,18 @@ export async function createCheckoutSession(opts: {
   return { id: json.id, url: json.url ?? null };
 }
 
+// Cancel a subscription. `immediate` maps to FastSpring's billingPeriod=0,
+// which deactivates right away instead of at the next billing date — that is
+// what account deletion needs, since the member will not exist to be billed.
+// Note: FastSpring does NOT emit subscription.canceled for an immediate cancel.
+export async function cancelSubscription(
+  subscriptionId: string,
+  opts: { immediate?: boolean } = {},
+): Promise<void> {
+  const query = opts.immediate ? "?billingPeriod=0" : "";
+  await fsFetch(`/subscriptions/${subscriptionId}${query}`, { method: "DELETE" });
+}
+
 // Short-lived authenticated link into FastSpring's Account Management Portal —
 // the analogue of the Stripe billing portal (update card, cancel renewal).
 // The token expires quickly, so generate at redirect time and never cache it.
