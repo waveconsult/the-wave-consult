@@ -85,7 +85,7 @@ async function findProfileId(
 // Supabase's update() resolves with an { error } object instead of throwing, so
 // an unchecked write fails silently and the webhook still answers 200 — the
 // payment looks handled while access was never granted. Make every write loud.
-async function must<T extends { error: unknown }>(
+async function must<T extends { error: unknown; data?: unknown }>(
   what: string,
   op: PromiseLike<T>,
 ): Promise<T> {
@@ -93,6 +93,13 @@ async function must<T extends { error: unknown }>(
   if (res.error) {
     const e = res.error as { message?: string; code?: string };
     throw new Error(`${what}: ${e.code ?? ""} ${e.message ?? JSON.stringify(res.error)}`.trim());
+  }
+  // An update whose WHERE clause matches nothing is NOT an error to Postgres.
+  // Without this the webhook answers 200 having changed nobody's access, which
+  // is exactly how a paid order can end with the buyer still on tier 'none'.
+  // The callers ask for .select(), so data is the list of rows actually written.
+  if (Array.isArray(res.data) && res.data.length === 0) {
+    throw new Error(`${what}: matched 0 rows — nothing was updated`);
   }
   return res;
 }
@@ -118,6 +125,17 @@ async function handleOrderCompleted(admin: Admin, data: FsData) {
     email: email || null,
   });
 
+  if (!profileId && !tags.application_id) {
+    // Nobody to grant access to. Name which lookup keys we actually had, since
+    // the usual cause is the checkout not carrying our user_id tag.
+    throw new Error(
+      `order.completed: could not resolve a member ` +
+        `(user_id tag: ${tags.user_id ? "present" : "missing"}, ` +
+        `account: ${accountId ? "present" : "missing"}, ` +
+        `email: ${email ? "present" : "missing"})`,
+    );
+  }
+
   if (profileId) {
     await must(
       "profiles update (order.completed)",
@@ -130,7 +148,8 @@ async function handleOrderCompleted(admin: Admin, data: FsData) {
         fastspring_subscription_id: subId,
         subscription_status: "active",
       })
-      .eq("id", profileId),
+      .eq("id", profileId)
+      .select("id"),
     );
   }
 
@@ -149,7 +168,8 @@ async function handleOrderCompleted(admin: Admin, data: FsData) {
         fastspring_account_id: accountId,
         fastspring_subscription_id: subId,
       })
-      .eq("id", tags.application_id),
+      .eq("id", tags.application_id)
+      .select("id"),
     );
   }
 }
@@ -185,7 +205,8 @@ async function handleSubscription(admin: Admin, type: string, data: FsData) {
       fastspring_subscription_id: subId,
       current_period_end: periodEndIso(data.next),
     })
-    .eq("id", profileId),
+    .eq("id", profileId)
+    .select("id"),
   );
 }
 
