@@ -11,6 +11,13 @@ import type { Plan } from "./types";
 // Integrations → Webhooks → "HMAC SHA256 Secret"). The base64 digest arrives in
 // the `X-FS-Signature` header. Verifying it is what authenticates the request —
 // an unset secret is a misconfiguration, so we fail closed.
+function matches(expected: string, signature: string): boolean {
+  const a = Buffer.from(expected);
+  const b = Buffer.from(signature.trim());
+  // Length check first — timingSafeEqual throws on unequal lengths.
+  return a.length === b.length && crypto.timingSafeEqual(a, b);
+}
+
 export function verifyFastSpringSignature(
   rawBody: string,
   signature: string | null | undefined,
@@ -18,15 +25,28 @@ export function verifyFastSpringSignature(
   const secret = process.env.FASTSPRING_WEBHOOK_SECRET;
   if (!secret || !signature) return false;
 
-  const expected = crypto
-    .createHmac("sha256", secret)
-    .update(rawBody, "utf8")
-    .digest("base64");
+  // The secret is pasted by hand into a multi-line Vercel field, and in this
+  // very project a value already arrived with the same content repeated on
+  // three lines. A stray newline changes the digest completely, so every
+  // webhook would 401 with nothing to distinguish it from a genuinely wrong
+  // secret. Try the value as given AND cleaned; both are "the configured
+  // secret", so accepting either loses no security.
+  const cleaned = secret.split("\n").map((l) => l.trim()).find((l) => l) ?? "";
+  const candidates = cleaned && cleaned !== secret ? [secret, cleaned] : [secret];
 
-  const a = Buffer.from(expected);
-  const b = Buffer.from(signature);
-  // Length check first — timingSafeEqual throws on unequal lengths.
-  return a.length === b.length && crypto.timingSafeEqual(a, b);
+  return candidates.some((candidate) =>
+    matches(
+      crypto.createHmac("sha256", candidate).update(rawBody, "utf8").digest("base64"),
+      signature,
+    ),
+  );
+}
+
+/** Character length of the configured secret — never the value itself. Lets a
+ *  triple-paste or a trailing newline be spotted by comparing against what was
+ *  entered in the FastSpring dashboard, without exposing the secret. */
+export function webhookSecretLength(): number {
+  return (process.env.FASTSPRING_WEBHOOK_SECRET ?? "").length;
 }
 
 // ── FastSpring REST API ────────────────────────────────────────────────────

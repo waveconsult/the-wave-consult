@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { PAYMENTS_PROVIDER, IS_FASTSPRING } from "@/lib/payments";
 import { tryProductForPlan } from "@/lib/fastspring";
+import { webhookSecretLength } from "@/lib/fastspring-server";
 
 // Public configuration probe. Exists because the checkout config is only
 // visible on /plans, which is behind the login — so there was no way to tell
@@ -52,6 +53,11 @@ export function GET() {
       "6m": tryProductForPlan("6m"),
       "1y": tryProductForPlan("1y"),
     },
+    // Length only, never the value. A secret generated as 32 random bytes in
+    // base64url is 43 characters. Anything far longer means it was pasted more
+    // than once or carries a newline — which produces a completely different
+    // HMAC and makes every webhook 401, indistinguishable from a wrong secret.
+    fastspringWebhookSecretLength: webhookSecretLength(),
     // Presence only — never the values.
     secretsPresent: {
       fastspringWebhookSecret: Boolean(process.env.FASTSPRING_WEBHOOK_SECRET),
