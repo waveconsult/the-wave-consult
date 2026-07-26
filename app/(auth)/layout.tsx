@@ -15,8 +15,8 @@ export default function AuthLayout({
         >
           Wave<span className="text-[#cdd2d8]">hub</span>
         </Link>
-        <Link href="/apply" className="btn-pill btn-pill-gold !px-5 !py-2 text-[12px]">
-          Apply
+        <Link href="/signup" className="btn-pill btn-pill-gold !px-5 !py-2 text-[12px]">
+          Sign up
         </Link>
       </header>
 

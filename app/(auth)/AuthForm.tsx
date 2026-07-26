@@ -78,12 +78,12 @@ export function AuthForm({
       <p className="pt-1 text-center text-[13px] text-[#94928a]">
         {mode === "login" ? (
           <>
-            No access yet?{" "}
+            No account yet?{" "}
             <Link
-              href="/apply"
+              href="/signup"
               className="-my-2.5 inline-block border-b border-[#cdd2d8]/50 py-2.5 font-semibold text-[#ededee] transition hover:border-[#cdd2d8]"
             >
-              Apply
+              Create one
             </Link>
           </>
         ) : (

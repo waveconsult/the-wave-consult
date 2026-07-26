@@ -28,8 +28,8 @@ export function PreLogin() {
         </p>
 
         <div className="mt-10 flex w-full max-w-xs flex-col items-center gap-5">
-          <Link href="/apply" className="btn-pill w-full">
-            Apply for membership
+          <Link href="/signup" className="btn-pill w-full">
+            Create your account
           </Link>
           <Link
             href="/login"
