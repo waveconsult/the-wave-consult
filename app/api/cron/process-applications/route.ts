@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { inviteApplicant } from "@/lib/onboarding";
+import { isPlan } from "@/lib/plans";
+import type { Plan } from "@/lib/types";
 
 // Auto-accept: any application still "pending" after this long gets accepted
 // automatically and sent the urgency email with its Stripe checkout link.
@@ -30,7 +32,7 @@ async function run(req: Request) {
 
   const { data: due, error } = await db
     .from("applications")
-    .select("id, email, requested_tier")
+    .select("id, email, requested_plan")
     .eq("status", "pending")
     .lte("created_at", cutoff)
     .limit(BATCH);
@@ -42,13 +44,13 @@ async function run(req: Request) {
   let processed = 0;
   const failed: string[] = [];
   for (const a of due ?? []) {
-    const tier: "core" | "private" =
-      a.requested_tier === "private" ? "private" : "core";
+    // Default to the yearly plan when the applicant did not pick one.
+    const plan: Plan = isPlan(a.requested_plan) ? a.requested_plan : "1y";
     try {
       await inviteApplicant({
         applicationId: a.id,
         email: a.email,
-        tier,
+        plan,
         urgency: true,
       });
       processed++;

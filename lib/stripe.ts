@@ -1,4 +1,5 @@
 import Stripe from "stripe";
+import type { Plan } from "./types";
 
 // Server-only Stripe client. Lazily instantiated so the app still builds and
 // boots when Stripe isn't configured yet — the operator fills the keys in
@@ -17,29 +18,31 @@ export function getStripe(): Stripe {
   return _stripe;
 }
 
-// Map a membership tier to its Stripe Price id. Create two one-time yearly
-// prices in the Stripe dashboard (Core €479, Private €779) and paste their
-// ids here via env.
-export function priceForTier(tier: "core" | "private"): string {
+// Map a membership plan to its Stripe Price id. Create three recurring prices
+// in the Stripe dashboard — €149 every 3 months, €299 every 6 months, €599
+// every 12 months (see lib/plans.ts) — and paste their ids here via env.
+// The recurring interval on each Stripe price must match PLANS[].intervalMonths.
+export function priceForPlan(plan: Plan): string {
   const id =
-    tier === "core"
-      ? process.env.STRIPE_PRICE_CORE
-      : process.env.STRIPE_PRICE_PRIVATE;
+    plan === "3m"
+      ? process.env.STRIPE_PRICE_3M
+      : plan === "6m"
+        ? process.env.STRIPE_PRICE_6M
+        : process.env.STRIPE_PRICE_1Y;
   if (!id) {
     throw new Error(
-      `Missing Stripe price for "${tier}". Set STRIPE_PRICE_${tier.toUpperCase()} in .env.local.`,
+      `Missing Stripe price for plan "${plan}". Set STRIPE_PRICE_${plan.toUpperCase()} in .env.local.`,
     );
   }
   return id;
 }
 
-// Reverse of priceForTier — used by the webhook as a fallback when a
-// subscription event doesn't carry the tier in metadata.
-export function tierForPrice(
-  priceId: string | null | undefined,
-): "core" | "private" | null {
+// Reverse of priceForPlan — used by the webhook as a fallback when a
+// subscription event doesn't carry the plan in metadata.
+export function planForPrice(priceId: string | null | undefined): Plan | null {
   if (!priceId) return null;
-  if (priceId === process.env.STRIPE_PRICE_CORE) return "core";
-  if (priceId === process.env.STRIPE_PRICE_PRIVATE) return "private";
+  if (priceId === process.env.STRIPE_PRICE_3M) return "3m";
+  if (priceId === process.env.STRIPE_PRICE_6M) return "6m";
+  if (priceId === process.env.STRIPE_PRICE_1Y) return "1y";
   return null;
 }

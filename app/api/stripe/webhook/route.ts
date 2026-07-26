@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import type Stripe from "stripe";
-import { getStripe, tierForPrice } from "@/lib/stripe";
+import { getStripe, planForPrice } from "@/lib/stripe";
+import { isPlan } from "@/lib/plans";
+import type { Plan } from "@/lib/types";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 // Stripe calls this endpoint after subscription events. It's public (Stripe is
@@ -10,14 +12,13 @@ import { createAdminClient } from "@/lib/supabase/admin";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-type Tier = "core" | "private";
 type Admin = ReturnType<typeof createAdminClient>;
 
 const ACTIVE = new Set(["active", "trialing"]);
 
-function tierFromMeta(meta: Stripe.Metadata | undefined | null): Tier | null {
-  const t = meta?.tier;
-  return t === "core" || t === "private" ? t : null;
+function planFromMeta(meta: Stripe.Metadata | undefined | null): Plan | null {
+  const p = meta?.plan;
+  return isPlan(p) ? p : null;
 }
 
 // current_period_end lives on the subscription (older API) or on its first item
@@ -96,10 +97,12 @@ export async function POST(req: Request) {
         .toLowerCase();
 
       const sub = subId ? await stripe.subscriptions.retrieve(subId) : null;
-      const tier: Tier | null =
-        tierFromMeta(meta) ??
-        tierFromMeta(sub?.metadata) ??
-        tierForPrice(sub?.items.data[0]?.price.id);
+      // Which duration was bought — metadata only. Access does not depend on
+      // resolving it: a completed checkout makes you a member.
+      const plan: Plan | null =
+        planFromMeta(meta) ??
+        planFromMeta(sub?.metadata) ??
+        planForPrice(sub?.items.data[0]?.price.id);
 
       // Attach the payment to the member's profile (grant access).
       const profileId = await findProfileId(admin, {
@@ -107,11 +110,12 @@ export async function POST(req: Request) {
         customerId,
         email: email || null,
       });
-      if (profileId && tier) {
+      if (profileId) {
         await admin
           .from("profiles")
           .update({
-            tier,
+            tier: "member",
+            plan: plan ?? undefined,
             stripe_customer_id: customerId,
             stripe_subscription_id: subId,
             subscription_status: sub?.status ?? "active",
@@ -127,7 +131,8 @@ export async function POST(req: Request) {
           .from("applications")
           .update({
             status: "accepted",
-            granted_tier: tier,
+            granted_tier: "member",
+            granted_plan: plan ?? undefined,
             paid_at: new Date().toISOString(),
             stripe_session_id: session.id,
             stripe_customer_id: customerId,
@@ -144,8 +149,8 @@ export async function POST(req: Request) {
     ) {
       const sub = event.data.object as Stripe.Subscription;
       const customerId = idOf(sub.customer);
-      const tier =
-        tierFromMeta(sub.metadata) ?? tierForPrice(sub.items.data[0]?.price.id);
+      const plan =
+        planFromMeta(sub.metadata) ?? planForPrice(sub.items.data[0]?.price.id);
       const profileId = await findProfileId(admin, {
         userId: sub.metadata?.user_id,
         customerId,
@@ -159,7 +164,8 @@ export async function POST(req: Request) {
           .update({
             // Access follows the subscription: keep the plan while active,
             // drop to 'none' the moment it lapses or is cancelled.
-            tier: active ? tier ?? undefined : "none",
+            tier: active ? "member" : "none",
+            plan: plan ?? undefined,
             subscription_status: canceled ? "canceled" : sub.status,
             stripe_subscription_id: sub.id,
             current_period_end: periodEndIso(sub),

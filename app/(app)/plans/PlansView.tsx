@@ -1,31 +1,54 @@
 "use client";
 
-import { useActionState, useState } from "react";
-import type { Tier } from "@/lib/types";
+import { useActionState } from "react";
+import { useState } from "react";
+import type { Plan, Tier } from "@/lib/types";
+import {
+  PLANS,
+  introLabel,
+  introPerMonth,
+  renewalNotice,
+  renewalPerMonth,
+} from "@/lib/plans";
+import { productForPlan } from "@/lib/fastspring";
+import { FastSpringCheckout } from "@/components/FastSpringCheckout";
 import { startCheckout, type JoinState } from "./actions";
 
 type Tab = "premium" | "free";
 
-const PREMIUM = [
-  {
-    tier: "core" as const,
-    name: "Core",
-    price: "€479",
-    tagline: "The system & the feed.",
-    features: ["Daily bet feed (ATP)", "Match insights & stats", "CLV tracking"],
-    emphasis: false,
-  },
-  {
-    tier: "private" as const,
-    name: "Private",
-    price: "€779",
-    tagline: "Tailored to you.",
-    features: ["Everything in Core", "Premium web tools", "Private live-info chat"],
-    emphasis: true,
-  },
+// Which payment processor is live. Stripe stays the default; flip to
+// "fastspring" (Merchant of Record) once the FastSpring store is approved.
+const PROVIDER = process.env.NEXT_PUBLIC_PAYMENTS_PROVIDER ?? "stripe";
+
+// One membership — everything is included on every plan. The only difference
+// between plans is how long you commit for. Keep this list in sync with the
+// public landing page.
+const FEATURES = [
+  "Daily bet feed (ATP)",
+  "Match insights & stats",
+  "CLV tracking",
+  "Premium web tools",
+  "Private live-info chat",
 ];
 
-export function PlansView({ currentTier }: { currentTier: Tier }) {
+// The 6-month plan is the default we steer people to.
+// NOTE on badge copy: renewal prices all work out at ~€50/month, so no plan is
+// genuinely cheaper long-term — do NOT badge any of these "Best value", that
+// would be a false claim. If the longer plans ever get a real discount on the
+// RENEWAL price (not just the intro), revisit this.
+const RECOMMENDED: Plan = "6m";
+
+export function PlansView({
+  currentTier,
+  currentPlan,
+  userId,
+  email,
+}: {
+  currentTier: Tier;
+  currentPlan: Plan | null;
+  userId: string;
+  email: string | null;
+}) {
   const [tab, setTab] = useState<Tab>("premium");
 
   return (
@@ -47,9 +70,37 @@ export function PlansView({ currentTier }: { currentTier: Tier }) {
       </div>
 
       {tab === "premium" ? (
-        PREMIUM.map((p) => (
-          <PremiumCard key={p.tier} plan={p} currentTier={currentTier} />
-        ))
+        <>
+          <div className="mb-4 rounded-[20px] border border-border p-5">
+            <h3 className="font-display text-xl font-bold text-text">
+              WaveHub Membership
+            </h3>
+            <p className="mt-1 text-xs text-muted">
+              One membership. Everything included, whichever length you pick.
+            </p>
+            <ul className="mt-4 space-y-1.5">
+              {FEATURES.map((f) => (
+                <li
+                  key={f}
+                  className="flex items-start gap-2.5 text-[13px] text-muted"
+                >
+                  <span className="mt-0.5 text-primary-bright">✓</span>
+                  {f}
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          {PLANS.map((p) => (
+            <PlanCard
+              key={p.plan}
+              entry={p}
+              isCurrent={currentTier === "member" && currentPlan === p.plan}
+              userId={userId}
+              email={email}
+            />
+          ))}
+        </>
       ) : (
         <div className="rounded-[20px] border border-border p-5">
           <div className="flex items-center justify-between">
@@ -77,76 +128,96 @@ export function PlansView({ currentTier }: { currentTier: Tier }) {
       )}
 
       <p className="mx-2 mt-4 text-center text-[12px] leading-relaxed text-faint">
-        Billed yearly · secure checkout &amp; renewals handled by Stripe.
+        Renews automatically · secure checkout &amp; renewals handled by{" "}
+        {PROVIDER === "fastspring" ? "FastSpring" : "Stripe"}.
       </p>
     </>
   );
 }
 
-function PremiumCard({
-  plan,
-  currentTier,
+function PlanCard({
+  entry,
+  isCurrent,
+  userId,
+  email,
 }: {
-  plan: (typeof PREMIUM)[number];
-  currentTier: Tier;
+  entry: (typeof PLANS)[number];
+  isCurrent: boolean;
+  userId: string;
+  email: string | null;
 }) {
   const [state, formAction, pending] = useActionState<JoinState, FormData>(
     startCheckout,
     { status: "idle" },
   );
-  const isCurrent = currentTier === plan.tier;
+  const emphasis = entry.plan === RECOMMENDED;
+
+  const btnClass = `block w-full rounded-[13px] py-3.5 text-sm font-semibold transition active:scale-[0.98] disabled:opacity-60 ${
+    emphasis
+      ? "bg-gradient-to-br from-[#9aa0a8] to-[#cdd2d8] text-[#14110a] shadow-[0_6px_20px_rgba(205,210,216,0.35)]"
+      : "border border-border-strong text-text"
+  }`;
 
   return (
     <div
       className={`relative mb-3.5 overflow-hidden rounded-[20px] border p-5 ${
-        plan.emphasis
+        emphasis
           ? "border-primary/40 bg-[linear-gradient(170deg,rgba(205,210,216,0.13),transparent_70%)]"
           : "border-border"
       }`}
     >
-      {plan.emphasis && (
+      {emphasis && (
         <span className="mono absolute right-4 top-4 rounded-md border border-primary/30 bg-primary/15 px-2 py-1 text-[9px] font-bold uppercase tracking-widest text-primary-bright">
           Recommended
         </span>
       )}
-      <h3 className="font-display text-xl font-bold text-text">{plan.name}</h3>
-      <p className="mt-1 text-xs text-muted">{plan.tagline}</p>
+      <h3 className="font-display text-xl font-bold text-text">{entry.name}</h3>
       <div className="mt-3 flex items-baseline gap-1.5">
-        <span className="mono text-[30px] font-bold text-text">{plan.price}</span>
-        <span className="text-[13px] text-muted">/year</span>
+        <span className="mono text-[30px] font-bold text-text">
+          {introLabel(entry.plan)}
+        </span>
+        <span className="text-[13px] text-muted">
+          for your first {entry.label}
+        </span>
       </div>
-      <ul className="my-4 space-y-1.5">
-        {plan.features.map((f) => (
-          <li key={f} className="flex items-start gap-2.5 text-[13px] text-muted">
-            <span className="mt-0.5 text-primary-bright">✓</span>
-            {f}
-          </li>
-        ))}
-      </ul>
+      <p className="mt-1 text-xs text-muted">
+        €{introPerMonth(entry.plan)} / month to start, then €
+        {renewalPerMonth(entry.plan)} / month
+      </p>
 
-      {isCurrent ? (
-        <div className="rounded-xl border border-pos/30 bg-pos/10 py-3 text-center text-sm font-semibold text-pos">
-          Your current plan
-        </div>
-      ) : (
-        <form action={formAction}>
-          <input type="hidden" name="tier" value={plan.tier} />
-          <button
-            type="submit"
-            disabled={pending}
-            className={`block w-full rounded-[13px] py-3.5 text-sm font-semibold transition active:scale-[0.98] disabled:opacity-60 ${
-              plan.emphasis
-                ? "bg-gradient-to-br from-[#9aa0a8] to-[#cdd2d8] text-[#14110a] shadow-[0_6px_20px_rgba(205,210,216,0.35)]"
-                : "border border-border-strong text-text"
-            }`}
-          >
-            {pending ? "Redirecting…" : `Subscribe to ${plan.name}`}
-          </button>
-          {state.status === "error" && (
-            <p className="mt-2 text-center text-xs text-neg">{state.message}</p>
-          )}
-        </form>
-      )}
+      <div className="mt-4">
+        {isCurrent ? (
+          <div className="rounded-xl border border-pos/30 bg-pos/10 py-3 text-center text-sm font-semibold text-pos">
+            Your current plan
+          </div>
+        ) : PROVIDER === "fastspring" ? (
+          <FastSpringCheckout
+            plan={entry.plan}
+            product={productForPlan(entry.plan)}
+            userId={userId}
+            email={email}
+            label={`Start — ${introLabel(entry.plan)}`}
+            className={btnClass}
+          />
+        ) : (
+          <form action={formAction}>
+            <input type="hidden" name="plan" value={entry.plan} />
+            <button type="submit" disabled={pending} className={btnClass}>
+              {pending ? "Redirecting…" : `Start — ${introLabel(entry.plan)}`}
+            </button>
+            {state.status === "error" && (
+              <p className="mt-2 text-center text-xs text-neg">{state.message}</p>
+            )}
+          </form>
+        )}
+        {/* Auto-renewal disclosure — required next to the buy button, not just
+            in the terms (EU consumer law, and it prevents chargebacks). */}
+        {!isCurrent && (
+          <p className="mt-2 text-center text-[11px] leading-relaxed text-faint">
+            {renewalNotice(entry.plan)}
+          </p>
+        )}
+      </div>
     </div>
   );
 }

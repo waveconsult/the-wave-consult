@@ -3,6 +3,7 @@
 import { useActionState } from "react";
 import Link from "next/link";
 import { submitApplication, type ApplyState } from "./actions";
+import { PLANS, isPlan, introLabel } from "@/lib/plans";
 
 const field =
   "w-full rounded-xl border border-white/15 bg-[#111110] px-4 py-3.5 text-[16px] text-[#ededee] placeholder:text-[#605f58] outline-none transition focus:border-[#cdd2d8]";
@@ -38,7 +39,7 @@ export function ApplyForm({ plan }: { plan?: string }) {
     );
   }
 
-  const defaultTier = plan === "core" || plan === "private" ? plan : "";
+  const defaultPlan = isPlan(plan) ? plan : "";
 
   return (
     <div>
@@ -68,18 +69,21 @@ export function ApplyForm({ plan }: { plan?: string }) {
         </div>
 
         <div>
-          <label className={label} htmlFor="apply-tier">
-            Membership
+          <label className={label} htmlFor="apply-plan">
+            Membership length
           </label>
           <select
-            id="apply-tier"
-            name="requested_tier"
-            defaultValue={defaultTier}
+            id="apply-plan"
+            name="requested_plan"
+            defaultValue={defaultPlan}
             className={field}
           >
             <option value="">Not sure yet</option>
-            <option value="core">Core · €479 / year</option>
-            <option value="private">Private · €779 / year</option>
+            {PLANS.map((p) => (
+              <option key={p.plan} value={p.plan}>
+                {p.label} · {introLabel(p.plan)}
+              </option>
+            ))}
           </select>
         </div>
 

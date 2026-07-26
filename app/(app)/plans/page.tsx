@@ -11,7 +11,12 @@ export default async function PlansPage() {
   return (
     <>
       <PageHeader title="Plans" />
-      <PlansView currentTier={profile.tier} />
+      <PlansView
+        currentTier={profile.tier}
+        currentPlan={profile.plan}
+        userId={profile.id}
+        email={profile.email}
+      />
     </>
   );
 }

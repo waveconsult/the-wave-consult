@@ -3,24 +3,29 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { getStripe, priceForTier } from "@/lib/stripe";
+import { getStripe, priceForPlan } from "@/lib/stripe";
+import { isPlan } from "@/lib/plans";
+import { getAccountManagementUrl } from "@/lib/fastspring-server";
 
 const SITE =
   process.env.NEXT_PUBLIC_SITE_URL ?? "https://app.wavehubtennis.com";
+
+// Which processor is live — mirrors NEXT_PUBLIC_PAYMENTS_PROVIDER in the UI.
+const PROVIDER = process.env.NEXT_PUBLIC_PAYMENTS_PROVIDER ?? "stripe";
 
 export type JoinState =
   | { status: "idle" }
   | { status: "error"; message: string };
 
-// Start a yearly subscription checkout for the signed-in user. Access (tier)
-// is NOT granted here — it is granted only by the Stripe webhook once payment
-// succeeds. On success Stripe redirects to /bets?welcome=1.
+// Start a membership checkout for the signed-in user on the chosen plan
+// (duration). Access is NOT granted here — only by the Stripe webhook once
+// payment succeeds. On success Stripe redirects to /bets?welcome=1.
 export async function startCheckout(
   _prev: JoinState,
   formData: FormData,
 ): Promise<JoinState> {
-  const tier = String(formData.get("tier") ?? "");
-  if (tier !== "core" && tier !== "private") {
+  const plan = String(formData.get("plan") ?? "");
+  if (!isPlan(plan)) {
     return { status: "error", message: "Invalid plan." };
   }
 
@@ -59,9 +64,9 @@ export async function startCheckout(
     const session = await stripe.checkout.sessions.create({
       mode: "subscription",
       customer: customerId,
-      line_items: [{ price: priceForTier(tier), quantity: 1 }],
-      metadata: { user_id: user.id, tier },
-      subscription_data: { metadata: { user_id: user.id, tier } },
+      line_items: [{ price: priceForPlan(plan), quantity: 1 }],
+      metadata: { user_id: user.id, plan },
+      subscription_data: { metadata: { user_id: user.id, plan } },
       allow_promotion_codes: true,
       success_url: `${SITE}/bets?welcome=1`,
       cancel_url: `${SITE}/plans`,
@@ -78,7 +83,10 @@ export async function startCheckout(
   redirect(url); // leaves the app for Stripe Checkout
 }
 
-// Open the Stripe billing portal so the member can update card / cancel.
+// Open the billing portal so the member can update card / cancel. Stripe has a
+// billing-portal session; FastSpring has an Account Management Portal reached
+// via a short-lived authenticated URL. Both are generated at redirect time and
+// never cached (the FastSpring token expires quickly).
 export async function manageSubscription(): Promise<void> {
   const supabase = await createClient();
   const {
@@ -89,16 +97,24 @@ export async function manageSubscription(): Promise<void> {
   const admin = createAdminClient();
   const { data: profile } = await admin
     .from("profiles")
-    .select("stripe_customer_id")
+    .select("stripe_customer_id, fastspring_account_id")
     .eq("id", user.id)
     .maybeSingle();
 
-  if (!profile?.stripe_customer_id) redirect("/plans");
+  let url: string | null = null;
 
-  const stripe = getStripe();
-  const portal = await stripe.billingPortal.sessions.create({
-    customer: profile.stripe_customer_id,
-    return_url: `${SITE}/profile`,
-  });
-  redirect(portal.url);
+  if (PROVIDER === "fastspring") {
+    if (!profile?.fastspring_account_id) redirect("/plans");
+    url = await getAccountManagementUrl(profile.fastspring_account_id);
+  } else {
+    if (!profile?.stripe_customer_id) redirect("/plans");
+    const portal = await getStripe().billingPortal.sessions.create({
+      customer: profile.stripe_customer_id,
+      return_url: `${SITE}/profile`,
+    });
+    url = portal.url;
+  }
+
+  if (!url) redirect("/plans");
+  redirect(url);
 }

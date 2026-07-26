@@ -1,4 +1,6 @@
 import { Resend } from "resend";
+import { introLabel, planDetails, renewalNotice } from "./plans";
+import type { Plan } from "./types";
 
 // Server-only transactional email via Resend. Lazily instantiated so the app
 // builds without the key; the operator sets RESEND_API_KEY + RESEND_FROM.
@@ -16,19 +18,22 @@ function getResend(): Resend {
 // Until a domain is verified in Resend you can send from onboarding@resend.dev.
 const FROM = process.env.RESEND_FROM ?? "WaveHub <onboarding@resend.dev>";
 
-const TIER_LABEL = { core: "Core", private: "Private" } as const;
-const TIER_PRICE = { core: "€479 / year", private: "€779 / year" } as const;
+// Derived from lib/plans.ts so the email can never quote a stale price.
+const planLabel = (plan: Plan) => planDetails(plan).name;
+// What they pay today, plus the renewal terms — the email must state both.
+const planPrice = (plan: Plan) =>
+  `${introLabel(plan)} for your first ${planDetails(plan).label} — ${renewalNotice(plan)}`;
 
 // Acceptance email: "you're in — activate your membership" with the Stripe
 // checkout link. Dark + champagne-gold, matches the brand.
 export async function sendAcceptanceEmail(opts: {
   to: string;
-  tier: "core" | "private";
+  plan: Plan;
   checkoutUrl: string;
 }): Promise<void> {
-  const { to, tier, checkoutUrl } = opts;
-  const label = TIER_LABEL[tier];
-  const price = TIER_PRICE[tier];
+  const { to, plan, checkoutUrl } = opts;
+  const label = planLabel(plan);
+  const price = planPrice(plan);
 
   const html = `
   <div style="margin:0;padding:0;background:#0a0a0b;">
@@ -71,12 +76,12 @@ export async function sendAcceptanceEmail(opts: {
 // pressure: Stripe checkout links expire after 24h and the club is kept small.
 export async function sendUrgencyEmail(opts: {
   to: string;
-  tier: "core" | "private";
+  plan: Plan;
   checkoutUrl: string;
 }): Promise<void> {
-  const { to, tier, checkoutUrl } = opts;
-  const label = TIER_LABEL[tier];
-  const price = TIER_PRICE[tier];
+  const { to, plan, checkoutUrl } = opts;
+  const label = planLabel(plan);
+  const price = planPrice(plan);
 
   const html = `
   <div style="margin:0;padding:0;background:#0a0a0b;">

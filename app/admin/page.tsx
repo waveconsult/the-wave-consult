@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import type { Application } from "@/lib/types";
 import { relativeDate } from "@/lib/format";
 import { acceptApplication, declineApplication } from "./actions";
+import { PLANS, introLabel } from "@/lib/plans";
 
 export const metadata: Metadata = { title: "Admin" };
 
@@ -95,13 +96,16 @@ export default async function AdminHome() {
                       >
                         <input type="hidden" name="id" value={a.id} />
                         <select
-                          name="tier"
-                          defaultValue={a.requested_tier ?? "core"}
-                          aria-label="Membership tier"
+                          name="plan"
+                          defaultValue={a.requested_plan ?? "1y"}
+                          aria-label="Membership length"
                           className="rounded-lg border border-border bg-surface-2 px-2 py-2 text-xs text-text"
                         >
-                          <option value="core">Core</option>
-                          <option value="private">Private</option>
+                          {PLANS.map((p) => (
+                            <option key={p.plan} value={p.plan}>
+                              {p.label} · {introLabel(p.plan)}
+                            </option>
+                          ))}
                         </select>
                         <button
                           type="submit"

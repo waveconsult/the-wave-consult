@@ -1,7 +1,12 @@
 // Domain types — mirror supabase/schema.sql (briefing §3, §4).
 
 export type Role = "user" | "admin";
-export type Tier = "none" | "core" | "private";
+// Access is binary: you are a member or you are not. The old core/private split
+// never gated anything (no min_tier on content), so it collapsed into one tier.
+export type Tier = "none" | "member";
+// How long the membership was bought for. Drives price and renewal only —
+// every plan grants exactly the same access.
+export type Plan = "3m" | "6m" | "1y";
 export type Strategy = "conservative" | "standard" | "aggressive";
 export type BetStatus = "open" | "won" | "lost" | "void";
 export type ApplicationStatus = "pending" | "accepted" | "declined";
@@ -12,6 +17,7 @@ export interface Profile {
   username: string | null;
   role: Role;
   tier: Tier;
+  plan: Plan | null;
   bankroll: number;
   staking_strategy: Strategy;
   max_stake_pct: number;
@@ -84,9 +90,11 @@ export interface Application {
   id: string;
   email: string;
   requested_tier: Exclude<Tier, "none"> | null;
+  requested_plan: Plan | null;
   note: string | null;
   status: ApplicationStatus;
   granted_tier: Exclude<Tier, "none"> | null;
+  granted_plan: Plan | null;
   stripe_session_id: string | null;
   paid_at: string | null;
   created_at: string;

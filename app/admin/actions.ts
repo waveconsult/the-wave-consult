@@ -8,6 +8,8 @@ import { inviteApplicant } from "@/lib/onboarding";
 import { broadcast } from "@/lib/push";
 import { parseDecimal } from "@/lib/format";
 import type { InsightStatRow } from "@/lib/types";
+import { isPlan } from "@/lib/plans";
+import type { Plan } from "@/lib/types";
 
 // One private bucket holds everything: bet slips, insight attachments and
 // tool/resource PDFs. Uploads run on the user's (admin) session so they never
@@ -327,8 +329,8 @@ export async function acceptApplication(formData: FormData): Promise<void> {
   if (!admin) return;
 
   const id = str(formData.get("id"));
-  const tier: "core" | "private" =
-    str(formData.get("tier")) === "private" ? "private" : "core";
+  const planRaw = str(formData.get("plan"));
+  const plan: Plan = isPlan(planRaw) ? planRaw : "1y";
   if (!id) return;
 
   const db = createAdminClient();
@@ -341,7 +343,7 @@ export async function acceptApplication(formData: FormData): Promise<void> {
 
   try {
     // Manual accept → calmer acceptance email (urgency: false).
-    await inviteApplicant({ applicationId: id, email: app.email, tier, urgency: false });
+    await inviteApplicant({ applicationId: id, email: app.email, plan, urgency: false });
   } catch {
     // Stripe/email not configured yet — leave the application untouched.
   }
