@@ -25,6 +25,21 @@ export function GET() {
       branch: process.env.VERCEL_GIT_COMMIT_REF ?? null,
       repo: process.env.VERCEL_GIT_REPO_SLUG ?? null,
       owner: process.env.VERCEL_GIT_REPO_OWNER ?? null,
+      // The deployment hostname embeds the PROJECT slug. The git repo alone is
+      // not enough: two Vercel projects can be wired to the same repository,
+      // and then variables get typed into one while the domain is served by
+      // the other. This is the only value that names the project itself.
+      deploymentUrl: process.env.VERCEL_URL ?? null,
+      productionUrl: process.env.VERCEL_PROJECT_PRODUCTION_URL ?? null,
+    },
+    // How many env vars this runtime can see at all, and which of the names we
+    // care about exist. Names only — never values. If ourVars is empty while
+    // totalEnvKeys is large, the variables are simply not on this project.
+    envDebug: {
+      totalEnvKeys: Object.keys(process.env).length,
+      ourVars: Object.keys(process.env)
+        .filter((k) => /FASTSPRING|PAYMENTS_PROVIDER|STRIPE|RESEND|SUPABASE/i.test(k))
+        .sort(),
     },
     // What the app will actually use, after trimming/lowercasing.
     paymentsProvider: PAYMENTS_PROVIDER,
