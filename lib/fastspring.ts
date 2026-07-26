@@ -24,14 +24,29 @@ const ENV_BY_PLAN: Record<Plan, string> = {
 // Next.js inlines process.env.NEXT_PUBLIC_* at build time only for statically
 // analysable member expressions, so these must be spelled out literally rather
 // than looked up via a computed key.
+// Product paths are pasted by hand into a multi-line Vercel textarea, so a
+// value can arrive with surrounding whitespace or — as actually happened — the
+// same path repeated on several lines. A FastSpring path is a single token and
+// can never contain a newline, so take the first non-empty line and trim it.
+// Without this the checkout silently fails: FastSpring is handed a product it
+// cannot resolve and the popup never opens.
+function clean(value: string | undefined): string | undefined {
+  if (!value) return undefined;
+  const first = value
+    .split("\n")
+    .map((line) => line.trim())
+    .find((line) => line.length > 0);
+  return first || undefined;
+}
+
 function rawPath(plan: Plan): string | undefined {
   switch (plan) {
     case "3m":
-      return process.env.NEXT_PUBLIC_FASTSPRING_PRODUCT_3M;
+      return clean(process.env.NEXT_PUBLIC_FASTSPRING_PRODUCT_3M);
     case "6m":
-      return process.env.NEXT_PUBLIC_FASTSPRING_PRODUCT_6M;
+      return clean(process.env.NEXT_PUBLIC_FASTSPRING_PRODUCT_6M);
     case "1y":
-      return process.env.NEXT_PUBLIC_FASTSPRING_PRODUCT_1Y;
+      return clean(process.env.NEXT_PUBLIC_FASTSPRING_PRODUCT_1Y);
   }
 }
 
@@ -56,11 +71,14 @@ export function tryProductForPlan(plan: Plan): string | null {
 }
 
 // Reverse of productForPlan — used by the webhook to work out which duration
-// was bought when the event doesn't carry it in its tags.
+// was bought when the event doesn't carry it in its tags. Compares against the
+// cleaned values, not the raw env vars: a stray newline in one of them would
+// otherwise make the webhook fail to recognise the plan it just sold.
 export function planForProduct(path: string | null | undefined): Plan | null {
   if (!path) return null;
-  if (path === process.env.NEXT_PUBLIC_FASTSPRING_PRODUCT_3M) return "3m";
-  if (path === process.env.NEXT_PUBLIC_FASTSPRING_PRODUCT_6M) return "6m";
-  if (path === process.env.NEXT_PUBLIC_FASTSPRING_PRODUCT_1Y) return "1y";
+  const needle = path.trim();
+  if (needle === rawPath("3m")) return "3m";
+  if (needle === rawPath("6m")) return "6m";
+  if (needle === rawPath("1y")) return "1y";
   return null;
 }
