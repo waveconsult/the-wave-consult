@@ -1,5 +1,4 @@
 import { createClient } from "@/lib/supabase/server";
-import type { SupabaseClient } from "@supabase/supabase-js";
 import type {
   BetWithMeta,
   InsightWithMeta,
@@ -7,24 +6,24 @@ import type {
   Tournament,
 } from "@/lib/types";
 
-const BUCKET = "bet-shots";
-const BUCKET_PUBLIC = process.env.NEXT_PUBLIC_BET_SHOTS_PUBLIC === "true";
 
-// Resolve a stored attachment path to a URL the browser can load.
+// Resolve a stored attachment path to a URL the browser can load. Always our
+// own route, which signs per request — see app/api/attachment/route.ts.
 //
-// For a private bucket this deliberately does NOT sign here. A signature minted
-// at render time is frozen into the HTML and dies an hour later, so any page
-// left open, revisited, or replayed from the client-side cache showed broken
-// images. Point at our own route instead and let it sign per request — that URL
-// cannot go stale. See app/api/attachment/route.ts.
-function resolveScreenshot(
-  client: SupabaseClient,
-  path: string | null,
-): string | null {
+// Two things this deliberately does NOT do:
+//
+// It does not sign here. A signature minted at render time is frozen into the
+// HTML and dies an hour later, so any page left open, revisited, or replayed
+// from the client-side cache showed broken images.
+//
+// It no longer branches on NEXT_PUBLIC_BET_SHOTS_PUBLIC. That branch handed out
+// a public storage URL, which returns an error for a bucket that is private —
+// and the bucket IS private, by design (see supabase/storage-policies.sql).
+// With the flag set to "true" in the environment the feed served dead URLs
+// while every other surface worked, which is a miserable thing to debug. The
+// route works for a public bucket too, so the fast path bought nothing.
+function resolveScreenshot(path: string | null): string | null {
   if (!path) return null;
-  if (BUCKET_PUBLIC) {
-    return client.storage.from(BUCKET).getPublicUrl(path).data.publicUrl;
-  }
   return `/api/attachment?path=${encodeURIComponent(path)}`;
 }
 
@@ -66,11 +65,10 @@ export async function getBets(
   const bets = (data as BetWithMeta[]) ?? [];
 
   // Resolve attachments (signed URLs when the bucket is private).
-  const client = supabase as unknown as SupabaseClient;
   return Promise.all(
     bets.map(async (b) => ({
       ...b,
-      screenshot_url: resolveScreenshot(client, b.screenshot_path),
+      screenshot_url: resolveScreenshot(b.screenshot_path),
     })),
   );
 }
@@ -82,13 +80,11 @@ export async function getResources(): Promise<Resource[]> {
     .select("*")
     .order("created_at", { ascending: false });
   const rows = (data as Resource[]) ?? [];
-  const client = supabase as unknown as SupabaseClient;
-  return Promise.all(
-    rows.map(async (r) => ({
-      ...r,
-      url: await resolveScreenshot(client, r.file_path),
-    })),
-  );
+  // Resources (PDFs/tools) go through the same route, for the same reasons.
+  return rows.map((r) => ({
+    ...r,
+    url: resolveScreenshot(r.file_path),
+  }));
 }
 
 export async function getInsights(): Promise<InsightWithMeta[]> {
@@ -100,11 +96,10 @@ export async function getInsights(): Promise<InsightWithMeta[]> {
   const insights = (data as InsightWithMeta[]) ?? [];
 
   // Resolve attachments (signed URLs when the bucket is private), same as bets.
-  const client = supabase as unknown as SupabaseClient;
   return Promise.all(
     insights.map(async (i) => ({
       ...i,
-      screenshot_url: resolveScreenshot(client, i.screenshot_path),
+      screenshot_url: resolveScreenshot(i.screenshot_path),
     })),
   );
 }
