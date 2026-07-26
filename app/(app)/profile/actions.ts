@@ -113,13 +113,7 @@ export async function deleteAccount(
     };
   }
 
-  // 2. Applications are keyed by email rather than user id, so they are not
-  //    covered by the cascade below, and they hold personal data.
-  if (email) {
-    await admin.from("applications").delete().eq("email", email);
-  }
-
-  // 3. Deleting the auth user cascades to profiles and push_subscriptions,
+  // 2. Deleting the auth user cascades to profiles and push_subscriptions,
   //    both of which reference auth.users(id) ON DELETE CASCADE.
   const { error } = await admin.auth.admin.deleteUser(user.id);
   if (error) {

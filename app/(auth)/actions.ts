@@ -3,7 +3,6 @@
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
-import { createAdminClient } from "@/lib/supabase/admin";
 
 export type AuthState = { error: string } | null;
 
@@ -48,42 +47,7 @@ export async function signup(
   if (error) return { error: error.message };
 
   // The profile row is auto-created by the on_auth_user_created trigger.
-  // Grant a tier ONLY if this email has a paid application (a checkout completed
-  // for it). If they paid before signing up, we grant it here; if they signed up
-  // first, the processor's webhook grants it the moment payment lands. Both
-  // processors are carried so this works whichever one took the payment.
-  if (data.user) {
-    try {
-      const admin = createAdminClient();
-      const { data: paid } = await admin
-        .from("applications")
-        .select(
-          "granted_tier, granted_plan, stripe_customer_id, stripe_subscription_id, fastspring_account_id, fastspring_subscription_id",
-        )
-        .eq("email", email.trim().toLowerCase())
-        .not("paid_at", "is", null)
-        .order("paid_at", { ascending: false })
-        .limit(1)
-        .maybeSingle();
-      const tier = paid?.granted_tier;
-      if (tier === "member") {
-        await admin
-          .from("profiles")
-          .update({
-            tier,
-            plan: paid?.granted_plan ?? null,
-            stripe_customer_id: paid?.stripe_customer_id ?? null,
-            stripe_subscription_id: paid?.stripe_subscription_id ?? null,
-            fastspring_account_id: paid?.fastspring_account_id ?? null,
-            fastspring_subscription_id: paid?.fastspring_subscription_id ?? null,
-            subscription_status: "active",
-          })
-          .eq("id", data.user.id);
-      }
-    } catch {
-      // Service-role key not set — skip; operator can grant tier manually.
-    }
-  }
+  // Membership is granted only by the payment webhook, never here.
 
   revalidatePath("/", "layout");
   redirect("/bets");

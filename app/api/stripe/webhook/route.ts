@@ -123,23 +123,6 @@ export async function POST(req: Request) {
           })
           .eq("id", profileId);
       }
-
-      // Record on the application (admin-invite flow); the Stripe ids let us
-      // attach the subscription at signup if the account doesn't exist yet.
-      if (meta.application_id) {
-        await admin
-          .from("applications")
-          .update({
-            status: "accepted",
-            granted_tier: "member",
-            granted_plan: plan ?? undefined,
-            paid_at: new Date().toISOString(),
-            stripe_session_id: session.id,
-            stripe_customer_id: customerId,
-            stripe_subscription_id: subId,
-          })
-          .eq("id", meta.application_id);
-      }
     }
 
     // ── Renewal / cancellation / status change ───────────────────────────

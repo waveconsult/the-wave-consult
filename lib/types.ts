@@ -9,7 +9,6 @@ export type Tier = "none" | "member";
 export type Plan = "3m" | "6m" | "1y";
 export type Strategy = "conservative" | "standard" | "aggressive";
 export type BetStatus = "open" | "won" | "lost" | "void";
-export type ApplicationStatus = "pending" | "accepted" | "declined";
 
 export interface Profile {
   id: string;
@@ -86,19 +85,6 @@ export interface Resource {
   url?: string | null;
 }
 
-export interface Application {
-  id: string;
-  email: string;
-  requested_tier: Exclude<Tier, "none"> | null;
-  requested_plan: Plan | null;
-  note: string | null;
-  status: ApplicationStatus;
-  granted_tier: Exclude<Tier, "none"> | null;
-  granted_plan: Plan | null;
-  stripe_session_id: string | null;
-  paid_at: string | null;
-  created_at: string;
-}
 
 // A bet joined with its tournament + a resolved screenshot URL, as rendered in the feed.
 export interface BetWithMeta extends Bet {

@@ -104,9 +104,8 @@ async function must<T extends { error: unknown; data?: unknown }>(
   return res;
 }
 
-// ── Initial purchase: the order carries the buyer email + our checkout tags,
-// so this is where we can also resolve the member by email and record the
-// admin-invite application. ────────────────────────────────────────────────
+// ── Initial purchase: the order carries the buyer email and our checkout tags,
+// which is how it is matched to the member. ────────────────────────────────
 async function handleOrderCompleted(admin: Admin, data: FsData) {
   const tags = data.tags ?? {};
   const accountId = asString(data.account);
@@ -125,9 +124,11 @@ async function handleOrderCompleted(admin: Admin, data: FsData) {
     email: email || null,
   });
 
-  if (!profileId && !tags.application_id) {
-    // Nobody to grant access to. Name which lookup keys we actually had, since
-    // the usual cause is the checkout not carrying our user_id tag.
+  if (!profileId) {
+    // Money came in and there is nobody to give access to. Checkout always runs
+    // from a signed-in session and tags the user id, so this means the tag was
+    // lost. Fail loudly: FastSpring shows the reason in its webhook log, and a
+    // silent 200 here would leave a paying customer locked out.
     throw new Error(
       `order.completed: could not resolve a member ` +
         `(user_id tag: ${tags.user_id ? "present" : "missing"}, ` +
@@ -136,10 +137,9 @@ async function handleOrderCompleted(admin: Admin, data: FsData) {
     );
   }
 
-  if (profileId) {
-    await must(
-      "profiles update (order.completed)",
-      admin
+  await must(
+    "profiles update (order.completed)",
+    admin
       .from("profiles")
       .update({
         tier: "member",
@@ -150,28 +150,7 @@ async function handleOrderCompleted(admin: Admin, data: FsData) {
       })
       .eq("id", profileId)
       .select("id"),
-    );
-  }
-
-  // admin-invite flow: member paid before the account exists — keep the ids on
-  // the application so they can be attached at signup.
-  if (tags.application_id) {
-    await must(
-      "applications update (order.completed)",
-      admin
-      .from("applications")
-      .update({
-        status: "accepted",
-        granted_tier: "member",
-        granted_plan: plan ?? undefined,
-        paid_at: new Date().toISOString(),
-        fastspring_account_id: accountId,
-        fastspring_subscription_id: subId,
-      })
-      .eq("id", tags.application_id)
-      .select("id"),
-    );
-  }
+  );
 }
 
 // ── Subscription lifecycle: activation, renewals, cancel (renewal off), and
