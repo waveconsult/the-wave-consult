@@ -45,6 +45,16 @@ export function productForPlan(plan: Plan): string {
   return path;
 }
 
+// Non-throwing variant for RENDER paths. The plans page runs this while the
+// page is being built, so a missing env var must degrade to a disabled button
+// rather than take the whole page down with a 500 — which is exactly what
+// happens between flipping NEXT_PUBLIC_PAYMENTS_PROVIDER to "fastspring" and
+// filling in the product paths. Server code that genuinely cannot continue
+// should keep using productForPlan and fail loudly.
+export function tryProductForPlan(plan: Plan): string | null {
+  return rawPath(plan) ?? null;
+}
+
 // Reverse of productForPlan — used by the webhook to work out which duration
 // was bought when the event doesn't carry it in its tags.
 export function planForProduct(path: string | null | undefined): Plan | null {

@@ -10,7 +10,7 @@ import {
   renewalNotice,
   renewalPerMonth,
 } from "@/lib/plans";
-import { productForPlan } from "@/lib/fastspring";
+import { tryProductForPlan } from "@/lib/fastspring";
 import { FastSpringCheckout } from "@/components/FastSpringCheckout";
 import { startCheckout, type JoinState } from "./actions";
 
@@ -151,6 +151,9 @@ function PlanCard({
     { status: "idle" },
   );
   const emphasis = entry.plan === RECOMMENDED;
+  // null while the FastSpring product paths are not configured yet — show a
+  // disabled button instead of crashing the page (see tryProductForPlan).
+  const fsProduct = tryProductForPlan(entry.plan);
 
   const btnClass = `block w-full rounded-[13px] py-3.5 text-sm font-semibold transition active:scale-[0.98] disabled:opacity-60 ${
     emphasis
@@ -191,14 +194,20 @@ function PlanCard({
             Your current plan
           </div>
         ) : PROVIDER === "fastspring" ? (
-          <FastSpringCheckout
-            plan={entry.plan}
-            product={productForPlan(entry.plan)}
-            userId={userId}
-            email={email}
-            label={`Start — ${introLabel(entry.plan)}`}
-            className={btnClass}
-          />
+          fsProduct ? (
+            <FastSpringCheckout
+              plan={entry.plan}
+              product={fsProduct}
+              userId={userId}
+              email={email}
+              label={`Start — ${introLabel(entry.plan)}`}
+              className={btnClass}
+            />
+          ) : (
+            <button type="button" disabled className={btnClass}>
+              Temporarily unavailable
+            </button>
+          )
         ) : (
           <form action={formAction}>
             <input type="hidden" name="plan" value={entry.plan} />
