@@ -3,11 +3,11 @@ import { createCheckoutSession } from "./fastspring-server";
 import { sendAcceptanceEmail, sendUrgencyEmail } from "./email";
 import { createAdminClient } from "./supabase/admin";
 import type { Plan } from "./types";
+import { IS_FASTSPRING } from "./payments";
 
 const SITE = process.env.NEXT_PUBLIC_SITE_URL ?? "https://app.wavehubtennis.com";
 
-// Which processor is live — mirrors NEXT_PUBLIC_PAYMENTS_PROVIDER in the UI.
-const PROVIDER = process.env.NEXT_PUBLIC_PAYMENTS_PROVIDER ?? "stripe";
+
 
 // Shared "accept an applicant" flow, used by both the manual admin Accept and
 // the automatic 1-hour auto-accept cron. Creates a personalised checkout on the
@@ -26,7 +26,7 @@ export async function inviteApplicant(opts: {
   const db = createAdminClient();
   let checkoutUrl: string | null = null;
 
-  if (PROVIDER === "fastspring") {
+  if (IS_FASTSPRING) {
     // Tags are FastSpring's metadata — they come back on the webhook.
     const session = await createCheckoutSession({
       plan,

@@ -6,12 +6,12 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { getStripe, priceForPlan } from "@/lib/stripe";
 import { isPlan } from "@/lib/plans";
 import { getAccountManagementUrl } from "@/lib/fastspring-server";
+import { IS_FASTSPRING } from "@/lib/payments";
 
 const SITE =
   process.env.NEXT_PUBLIC_SITE_URL ?? "https://app.wavehubtennis.com";
 
-// Which processor is live — mirrors NEXT_PUBLIC_PAYMENTS_PROVIDER in the UI.
-const PROVIDER = process.env.NEXT_PUBLIC_PAYMENTS_PROVIDER ?? "stripe";
+
 
 export type JoinState =
   | { status: "idle" }
@@ -36,7 +36,7 @@ export async function startCheckout(
   // without redeploying leaves a stale bundle behind. Say that, instead of
   // letting getStripe() below fail with a misleading "STRIPE_SECRET_KEY is not
   // set" that points at the wrong problem entirely.
-  if (PROVIDER === "fastspring") {
+  if (IS_FASTSPRING) {
     return {
       status: "error",
       message:
@@ -118,7 +118,7 @@ export async function manageSubscription(): Promise<void> {
 
   let url: string | null = null;
 
-  if (PROVIDER === "fastspring") {
+  if (IS_FASTSPRING) {
     if (!profile?.fastspring_account_id) redirect("/plans");
     url = await getAccountManagementUrl(profile.fastspring_account_id);
   } else {

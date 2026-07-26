@@ -11,14 +11,13 @@ import {
   renewalPerMonth,
 } from "@/lib/plans";
 import { tryProductForPlan } from "@/lib/fastspring";
+import { IS_FASTSPRING, PROCESSOR_NAME } from "@/lib/payments";
 import { FastSpringCheckout } from "@/components/FastSpringCheckout";
 import { startCheckout, type JoinState } from "./actions";
 
 type Tab = "premium" | "free";
 
-// Which payment processor is live. Stripe stays the default; flip to
-// "fastspring" (Merchant of Record) once the FastSpring store is approved.
-const PROVIDER = process.env.NEXT_PUBLIC_PAYMENTS_PROVIDER ?? "stripe";
+
 
 // One membership — everything is included on every plan. The only difference
 // between plans is how long you commit for. Keep this list in sync with the
@@ -129,7 +128,7 @@ export function PlansView({
 
       <p className="mx-2 mt-4 text-center text-[12px] leading-relaxed text-faint">
         Renews automatically · secure checkout &amp; renewals handled by{" "}
-        {PROVIDER === "fastspring" ? "FastSpring" : "Stripe"}.
+        {PROCESSOR_NAME}.
       </p>
     </>
   );
@@ -193,7 +192,7 @@ function PlanCard({
           <div className="rounded-xl border border-pos/30 bg-pos/10 py-3 text-center text-sm font-semibold text-pos">
             Your current plan
           </div>
-        ) : PROVIDER === "fastspring" ? (
+        ) : IS_FASTSPRING ? (
           fsProduct ? (
             <FastSpringCheckout
               plan={entry.plan}
