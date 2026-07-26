@@ -42,3 +42,24 @@ export function relativeDate(iso: string): string {
     month: "short",
   });
 }
+
+// When a pick was published, as day + time.
+//
+// Pinned to Europe/Vienna on purpose. This renders on the server, which runs in
+// UTC on Vercel, so formatting in the runtime's zone would quietly show every
+// member a time an hour or two off — and for a feed whose whole selling point
+// is "posted before the price moved", a wrong timestamp is worse than none.
+// A fixed zone also keeps server and client output identical, so there is no
+// hydration mismatch. CET/CEST is the right reference for a European ATP feed.
+export function publishedAt(iso: string): string {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "";
+  return d.toLocaleString("en-GB", {
+    timeZone: "Europe/Vienna",
+    day: "numeric",
+    month: "short",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  });
+}

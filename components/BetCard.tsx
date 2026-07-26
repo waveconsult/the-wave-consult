@@ -1,6 +1,7 @@
 import type { BetWithMeta, Strategy } from "@/lib/types";
 import { effectiveStakePct, memberStakeAmount } from "@/lib/staking";
-import { odds } from "@/lib/format";
+import Link from "next/link";
+import { odds, publishedAt } from "@/lib/format";
 import { deleteBet } from "@/app/admin/actions";
 import { Attachment } from "./Attachment";
 import { LockedCard } from "./LockedCard";
@@ -43,18 +44,30 @@ export function BetCard({
           ) : null}
         </p>
         {isAdmin ? (
-          <form action={deleteBet}>
-            <input type="hidden" name="id" value={bet.id} />
-            <button
-              type="submit"
-              aria-label="Delete bet"
-              className="shrink-0 rounded-md border border-black/25 px-1.5 py-1 text-[#14110a]/70 transition hover:border-black/50 hover:text-[#14110a]"
+          <div className="flex shrink-0 items-center gap-1.5">
+            <Link
+              href={`/admin/bets/${bet.id}/edit`}
+              aria-label="Edit bet"
+              className="rounded-md border border-black/25 px-1.5 py-1 text-[#14110a]/70 transition hover:border-black/50 hover:text-[#14110a]"
             >
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14" />
+                <path d="M12 20h9" />
+                <path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z" />
               </svg>
-            </button>
-          </form>
+            </Link>
+            <form action={deleteBet}>
+              <input type="hidden" name="id" value={bet.id} />
+              <button
+                type="submit"
+                aria-label="Delete bet"
+                className="rounded-md border border-black/25 px-1.5 py-1 text-[#14110a]/70 transition hover:border-black/50 hover:text-[#14110a]"
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14" />
+                </svg>
+              </button>
+            </form>
+          </div>
         ) : null}
       </header>
 
@@ -64,6 +77,11 @@ export function BetCard({
           <p className="mono min-w-0 truncate text-[10px] uppercase tracking-wide text-muted">
             {bet.tournament?.country_flag ? `${bet.tournament.country_flag} ` : ""}
             {meta}
+            {bet.published_at ? (
+              // When it went out. The feed's claim is that picks land before the
+              // price moves, so the time is part of the evidence, not decoration.
+              <span className="text-faint"> · {publishedAt(bet.published_at)}</span>
+            ) : null}
           </p>
           <span
             className={`mono shrink-0 rounded-md px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide ${

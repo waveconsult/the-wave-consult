@@ -10,25 +10,22 @@ import type {
 const BUCKET = "bet-shots";
 const BUCKET_PUBLIC = process.env.NEXT_PUBLIC_BET_SHOTS_PUBLIC === "true";
 
-// Resolve a stored attachment path to a URL the browser can load. Runs on the
-// caller's session client; the bucket's storage RLS allows authenticated reads.
-// Public bucket → public URL; private bucket → short-lived signed URL.
-async function resolveScreenshot(
+// Resolve a stored attachment path to a URL the browser can load.
+//
+// For a private bucket this deliberately does NOT sign here. A signature minted
+// at render time is frozen into the HTML and dies an hour later, so any page
+// left open, revisited, or replayed from the client-side cache showed broken
+// images. Point at our own route instead and let it sign per request — that URL
+// cannot go stale. See app/api/attachment/route.ts.
+function resolveScreenshot(
   client: SupabaseClient,
   path: string | null,
-): Promise<string | null> {
+): string | null {
   if (!path) return null;
-  try {
-    if (BUCKET_PUBLIC) {
-      return client.storage.from(BUCKET).getPublicUrl(path).data.publicUrl;
-    }
-    const { data } = await client.storage
-      .from(BUCKET)
-      .createSignedUrl(path, 60 * 60); // 1h TTL
-    return data?.signedUrl ?? null;
-  } catch {
-    return null;
+  if (BUCKET_PUBLIC) {
+    return client.storage.from(BUCKET).getPublicUrl(path).data.publicUrl;
   }
+  return `/api/attachment?path=${encodeURIComponent(path)}`;
 }
 
 export async function getTournaments(
@@ -73,7 +70,7 @@ export async function getBets(
   return Promise.all(
     bets.map(async (b) => ({
       ...b,
-      screenshot_url: await resolveScreenshot(client, b.screenshot_path),
+      screenshot_url: resolveScreenshot(client, b.screenshot_path),
     })),
   );
 }
@@ -107,7 +104,7 @@ export async function getInsights(): Promise<InsightWithMeta[]> {
   return Promise.all(
     insights.map(async (i) => ({
       ...i,
-      screenshot_url: await resolveScreenshot(client, i.screenshot_path),
+      screenshot_url: resolveScreenshot(client, i.screenshot_path),
     })),
   );
 }

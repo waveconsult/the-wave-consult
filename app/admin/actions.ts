@@ -236,6 +236,89 @@ export async function createInsight(
   redirect("/bets");
 }
 
+// ---- Edit an existing bet (admin) ----
+// Mirrors createBet, with two differences: the attachment is optional on an
+// edit and leaving it empty KEEPS the existing one rather than clearing it —
+// re-uploading a bet slip just to fix a typo in the reasoning would be a trap.
+// Removing an attachment is therefore explicit, via the "remove_screenshot" box.
+export async function updateBet(
+  _prev: AdminState,
+  formData: FormData,
+): Promise<AdminState> {
+  const supabase = await createClient();
+  const admin = await requireAdminUser(supabase);
+  if (!admin) return { error: "Admins only." };
+
+  const id = str(formData.get("id"));
+  if (!id) return { error: "Missing bet id." };
+
+  const selection = str(formData.get("selection"));
+  const stakePct = num(formData.get("stake_pct"));
+  if (!selection) return { error: "The pick is required." };
+  if (!Number.isFinite(stakePct) || stakePct < 0)
+    return { error: "Stake % must be 0 or more." };
+
+  const file = formData.get("screenshot");
+  const hasFile = file instanceof File && file.size > 0;
+  if (hasFile && file instanceof File) {
+    const isImage = file.type.startsWith("image/");
+    const isPdfFile = file.type === "application/pdf";
+    if (!isImage && !isPdfFile)
+      return { error: "Attachment must be an image or a PDF." };
+    const cap = isPdfFile ? MAX_PDF_BYTES : MAX_BYTES;
+    if (file.size > cap)
+      return {
+        error: isPdfFile
+          ? "PDF must be 4 MB or smaller."
+          : "Image must be 4 MB or smaller.",
+      };
+  }
+
+  const { data: existing } = await supabase
+    .from("bets")
+    .select("screenshot_path")
+    .eq("id", id)
+    .single();
+
+  const { error: updateErr } = await supabase
+    .from("bets")
+    .update({
+      tournament_name: nullable(str(formData.get("tournament_name"))),
+      match: selection,
+      selection,
+      stake_pct: stakePct,
+      reasoning: nullable(str(formData.get("reasoning"))),
+    })
+    .eq("id", id);
+  if (updateErr) return { error: updateErr.message };
+
+  // Replace the attachment.
+  if (hasFile && file instanceof File) {
+    const ext = file.name.split(".").pop()?.toLowerCase() || "png";
+    const path = `bets/${id}.${ext}`;
+    const { error: uploadErr } = await supabase.storage
+      .from(BUCKET)
+      .upload(path, file, { contentType: file.type, upsert: true });
+    if (uploadErr) return { error: `Bet saved, but upload failed: ${uploadErr.message}` };
+
+    // The extension can change (png → pdf), which leaves the old object behind.
+    if (existing?.screenshot_path && existing.screenshot_path !== path) {
+      await supabase.storage.from(BUCKET).remove([existing.screenshot_path]);
+    }
+    const { error: pathErr } = await supabase
+      .from("bets")
+      .update({ screenshot_path: path })
+      .eq("id", id);
+    if (pathErr) return { error: `Upload succeeded but linking it failed: ${pathErr.message}` };
+  } else if (str(formData.get("remove_screenshot")) === "on" && existing?.screenshot_path) {
+    await supabase.storage.from(BUCKET).remove([existing.screenshot_path]);
+    await supabase.from("bets").update({ screenshot_path: null }).eq("id", id);
+  }
+
+  revalidatePath("/", "layout");
+  redirect("/bets");
+}
+
 // ---- Delete a bet (admin, from the feed) ----
 export async function deleteBet(formData: FormData): Promise<void> {
   const supabase = await createClient();
