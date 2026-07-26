@@ -34,8 +34,8 @@ export const PLANS: {
   label: string;
 }[] = [
   { plan: "3m", name: "3 Month Membership", introEur: 99, renewalEur: 149, intervalMonths: 3, label: "3 months" },
-  { plan: "6m", name: "6 Month Membership", introEur: 224, renewalEur: 299, intervalMonths: 6, label: "6 months" },
-  { plan: "1y", name: "1 Year Membership", introEur: 449, renewalEur: 599, intervalMonths: 12, label: "1 year" },
+  { plan: "6m", name: "6 Month Membership", introEur: 199, renewalEur: 299, intervalMonths: 6, label: "6 months" },
+  { plan: "1y", name: "1 Year Membership", introEur: 349, renewalEur: 499, intervalMonths: 12, label: "1 year" },
 ];
 
 export function planDetails(plan: Plan) {

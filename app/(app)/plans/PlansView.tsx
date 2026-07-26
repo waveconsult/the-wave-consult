@@ -31,10 +31,10 @@ const FEATURES = [
 ];
 
 // The 6-month plan is the default we steer people to.
-// NOTE on badge copy: renewal prices all work out at ~€50/month, so no plan is
-// genuinely cheaper long-term — do NOT badge any of these "Best value", that
-// would be a false claim. If the longer plans ever get a real discount on the
-// RENEWAL price (not just the intro), revisit this.
+// Badge copy must stay true to lib/plans.ts: since the 2026-07-26 repricing the
+// yearly plan really is the cheapest per month (€42 vs €50 on renewal), so
+// "Best value" would now be accurate for "1y" — but NOT for whichever plan
+// merely carries the emphasis. Check the numbers before changing this label.
 const RECOMMENDED: Plan = "6m";
 
 export function PlansView({
