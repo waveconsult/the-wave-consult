@@ -15,6 +15,17 @@ export const dynamic = "force-dynamic";
 
 export function GET() {
   return NextResponse.json({
+    // Which deployment is actually answering. Vercel injects these itself, so
+    // they identify the running deployment even when our own variables are
+    // missing — which is the case that is hardest to diagnose from outside:
+    // "is my change even live, and is this the project I edited?"
+    deployment: {
+      env: process.env.VERCEL_ENV ?? null, // production | preview | development
+      commit: process.env.VERCEL_GIT_COMMIT_SHA?.slice(0, 7) ?? null,
+      branch: process.env.VERCEL_GIT_COMMIT_REF ?? null,
+      repo: process.env.VERCEL_GIT_REPO_SLUG ?? null,
+      owner: process.env.VERCEL_GIT_REPO_OWNER ?? null,
+    },
     // What the app will actually use, after trimming/lowercasing.
     paymentsProvider: PAYMENTS_PROVIDER,
     isFastSpring: IS_FASTSPRING,
