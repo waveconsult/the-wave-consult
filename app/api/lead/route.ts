@@ -101,6 +101,7 @@ export async function POST(req: Request) {
   const tournament = String(body.tournament ?? "").trim().slice(0, 60) || "general";
   const title = String(body.title ?? "").trim().slice(0, 120) || "ATP preview";
   const pdf = String(body.pdf ?? "").trim();
+  const followedIg = body.followed_ig === true;
 
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
     return NextResponse.json({ error: "Please enter a valid email." }, { status: 400, headers });
@@ -139,6 +140,7 @@ export async function POST(req: Request) {
       email,
       tournament,
       source: req.headers.get("referer")?.slice(0, 200) ?? null,
+      followed_ig: followedIg,
       emailed_at: emailed ? new Date().toISOString() : null,
       mailchimp_synced: synced,
     });
