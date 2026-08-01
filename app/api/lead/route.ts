@@ -1,5 +1,4 @@
 import { NextResponse } from "next/server";
-import { createHash } from "crypto";
 import { Resend } from "resend";
 import { createAdminClient } from "@/lib/supabase/admin";
 
@@ -61,30 +60,24 @@ function pdfEmail(name: string, title: string, pdfUrl: string) {
 </table></td></tr></table></body></html>`;
 }
 
-async function toMailchimp(email: string, name: string, tournament: string) {
-  const key = process.env.MAILCHIMP_API_KEY;
-  const list = process.env.MAILCHIMP_LIST_ID;
-  if (!key || !list) return false;
-  const dc = key.split("-")[1];
-  if (!dc) return false;
-  const hash = createHash("md5").update(email.toLowerCase()).digest("hex");
-  const res = await fetch(
-    `https://${dc}.api.mailchimp.com/3.0/lists/${list}/members/${hash}`,
-    {
-      method: "PUT", // upsert — never fails on an existing subscriber
-      headers: {
-        Authorization: `Basic ${Buffer.from(`anystring:${key}`).toString("base64")}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        email_address: email,
-        status_if_new: "subscribed",
-        merge_fields: name ? { FNAME: name } : {},
-        tags: [`preview-${tournament}`],
-      }),
-    },
-  );
-  return res.ok;
+// Add the lead to the Resend audience (Resend's own contact list — no separate
+// newsletter provider needed). Re-adding an existing contact just 409s, which
+// we treat as success. Skipped silently when no audience is configured.
+async function toAudience(resend: Resend, email: string, name: string) {
+  const audienceId = process.env.RESEND_AUDIENCE_ID;
+  if (!audienceId) return false;
+  try {
+    const { error } = await resend.contacts.create({
+      audienceId,
+      email,
+      firstName: name || undefined,
+      unsubscribed: false,
+    });
+    // already on the list -> still "synced" as far as we care
+    return !error || /exist/i.test(error.message ?? "");
+  } catch {
+    return false;
+  }
 }
 
 export async function POST(req: Request) {
@@ -110,10 +103,11 @@ export async function POST(req: Request) {
   const pdfUrl = pdf.startsWith("/") ? SITE + pdf : `${SITE}/assets/previews/${tournament}.pdf`;
 
   let emailed = false;
+  let synced = false;
   const key = process.env.RESEND_API_KEY;
   if (key) {
+    const resend = new Resend(key);
     try {
-      const resend = new Resend(key);
       await resend.emails.send({
         from: process.env.RESEND_FROM ?? "WaveHub <onboarding@resend.dev>",
         to: email,
@@ -122,15 +116,9 @@ export async function POST(req: Request) {
       });
       emailed = true;
     } catch {
-      // fall through — the lead is still stored and Mailchimp can deliver
+      // fall through — the page falls back to a direct download link
     }
-  }
-
-  let synced = false;
-  try {
-    synced = await toMailchimp(email, name, tournament);
-  } catch {
-    /* non-fatal */
+    synced = await toAudience(resend, email, name);
   }
 
   try {
@@ -142,7 +130,7 @@ export async function POST(req: Request) {
       source: req.headers.get("referer")?.slice(0, 200) ?? null,
       followed_ig: followedIg,
       emailed_at: emailed ? new Date().toISOString() : null,
-      mailchimp_synced: synced,
+      list_synced: synced,
     });
   } catch {
     // If the DB is down we still delivered the PDF — don't fail the user.

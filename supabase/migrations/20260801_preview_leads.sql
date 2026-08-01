@@ -10,7 +10,7 @@ create table if not exists public.preview_leads (
   experience text,                   -- reserved: betting experience (not asked yet)
   source text,                       -- page / campaign the lead came from
   emailed_at timestamptz,            -- when the PDF mail actually went out
-  mailchimp_synced boolean not null default false
+  list_synced boolean not null default false   -- added to the Resend audience
 );
 
 -- Did the visitor go through the "follow us on Instagram" step? Honour-system:
@@ -18,6 +18,11 @@ create table if not exists public.preview_leads (
 -- clicked through to the profile, not that they actually followed.
 alter table public.preview_leads
   add column if not exists followed_ig boolean not null default false;
+
+-- Contacts live in the Resend audience now (Mailchimp was dropped). Safe on a
+-- table created before the rename.
+alter table public.preview_leads
+  add column if not exists list_synced boolean not null default false;
 
 create index if not exists preview_leads_email_idx on public.preview_leads (email);
 create index if not exists preview_leads_tournament_idx on public.preview_leads (tournament, created_at desc);
