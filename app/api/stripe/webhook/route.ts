@@ -4,6 +4,17 @@ import { getStripe, planForPrice } from "@/lib/stripe";
 import { isPlan } from "@/lib/plans";
 import type { Plan } from "@/lib/types";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { createInvite, removeMember, sendMessage } from "@/lib/telegram";
+
+/** "tg_12345" (client_reference_id) or metadata.telegram_id -> 12345 */
+function telegramIdFrom(
+  ref: string | null | undefined,
+  meta: Record<string, string> | undefined | null,
+): number | null {
+  const raw = meta?.telegram_id ?? (ref?.startsWith("tg_") ? ref.slice(3) : null);
+  const n = raw ? Number(raw) : NaN;
+  return Number.isFinite(n) && n > 0 ? n : null;
+}
 
 // Stripe calls this endpoint after subscription events. It's public (Stripe is
 // not a logged-in user) but authenticated by the webhook signature. This is the
@@ -123,6 +134,34 @@ export async function POST(req: Request) {
           })
           .eq("id", profileId);
       }
+
+      // ── Telegram: bought through the bot (or a link carrying the tg id) ──
+      const tgId = telegramIdFrom(session.client_reference_id, meta);
+      if (tgId) {
+        await admin.from("telegram_members").upsert(
+          {
+            telegram_id: tgId,
+            email: email || null,
+            stripe_customer_id: customerId,
+            stripe_subscription_id: subId,
+            plan: plan ?? undefined,
+            status: "active",
+            current_period_end: sub ? periodEndIso(sub) : null,
+            updated_at: new Date().toISOString(),
+          },
+          { onConflict: "telegram_id" },
+        );
+
+        // The group approves join requests, so this link only works for a
+        // paid account — the bot checks the DB before letting anyone in.
+        const invite = await createInvite();
+        await sendMessage(
+          tgId,
+          invite
+            ? `Payment received — you're a member. 🎾\n\nTap to join the group:\n${invite}\n\nThe link is single-use and expires in 48 hours.`
+            : `Payment received — you're a member. 🎾\n\nI could not generate your invite link automatically. Reply here and we'll sort it out.`,
+        );
+      }
     }
 
     // ── Renewal / cancellation / status change ───────────────────────────
@@ -154,6 +193,44 @@ export async function POST(req: Request) {
             current_period_end: periodEndIso(sub),
           })
           .eq("id", profileId);
+      }
+
+      // ── Telegram: mirror the subscription state onto group access ────────
+      const canceled = event.type === "customer.subscription.deleted";
+      const active = !canceled && ACTIVE.has(sub.status);
+      const { data: tgRow } = await admin
+        .from("telegram_members")
+        .select("telegram_id, in_group")
+        .eq("stripe_subscription_id", sub.id)
+        .maybeSingle();
+
+      if (tgRow?.telegram_id) {
+        await admin
+          .from("telegram_members")
+          .update({
+            plan: plan ?? undefined,
+            status: canceled ? "canceled" : sub.status,
+            current_period_end: periodEndIso(sub),
+            updated_at: new Date().toISOString(),
+          })
+          .eq("telegram_id", tgRow.telegram_id);
+
+        // Stripe reports the cancellation immediately, but the member has paid
+        // through current_period_end — only remove once that has actually
+        // passed. The nightly sweep handles the ones that expire later.
+        const stillPaid =
+          !!periodEndIso(sub) && new Date(periodEndIso(sub) as string) > new Date();
+        if (!active && !stillPaid && tgRow.in_group) {
+          await removeMember(tgRow.telegram_id);
+          await admin
+            .from("telegram_members")
+            .update({ in_group: false, removed_at: new Date().toISOString() })
+            .eq("telegram_id", tgRow.telegram_id);
+          await sendMessage(
+            tgRow.telegram_id,
+            "Your membership has ended, so you've been removed from the group. Tap /start any time to come back.",
+          );
+        }
       }
     }
   } catch {
