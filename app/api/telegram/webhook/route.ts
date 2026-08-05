@@ -154,7 +154,10 @@ function planKeyboard() {
   return {
     inline_keyboard: PLANS.map((p) => [
       {
-        text: `${p.name} — €${p.introEur}, then €${p.renewalEur}`,
+        text:
+          p.introEur < p.renewalEur
+            ? `${p.name} — €${p.introEur}, then €${p.renewalEur}`
+            : `${p.name} — €${p.renewalEur}`,
         callback_data: `buy:${p.plan}`,
       },
     ]),
@@ -254,9 +257,13 @@ export async function POST(req: Request) {
           return NextResponse.json({ ok: true });
         }
         const d = planDetails(plan as never);
+        const terms =
+          d.introEur < d.renewalEur
+            ? `€${d.introEur} now, then €${d.renewalEur} every ${d.label}. Cancel anytime.`
+            : `€${d.renewalEur} every ${d.label}. Cancel anytime.`;
         await sendMessage(
           from.id,
-          `<b>${d.name}</b>\n€${d.introEur} now, then €${d.renewalEur} every ${d.label}. Cancel anytime.\n\n` +
+          `<b>${d.name}</b>\n${terms}\n\n` +
             `Complete the payment and I'll send your invite link straight back here.`,
           {
             reply_markup: {

@@ -10,18 +10,19 @@ import type { Plan } from "./types";
 //   3. the app's plans page (which reads this file)
 // Change a price here and you must change it in 1 and 2 as well.
 //
-// Pricing model: the FIRST period is discounted (introEur), every renewal after
-// that is the full price (renewalEur). In FastSpring this is a "paid trial with
-// a discounted amount": trial length = one full billing period, trial price =
-// introEur, then it rebills at renewalEur.
+// Pricing model: FLAT. Every period costs the same, so introEur == renewalEur.
+// The two fields stay because the structure supports an introductory discount —
+// a first period cheaper than the renewals — and switching back is then a
+// number change here plus a coupon on the Stripe side, not a rewrite. Copy
+// throughout the app asks hasIntroDiscount() rather than assuming either shape.
 //
-// This is an INTRODUCTORY DISCOUNT, not a free trial — the member is charged
-// introEur immediately. Copy must never call it "x days free": they are paying
-// from day one. The honest framing is "first N months €X, then €Y".
+// If an intro price is ever reintroduced: it is a DISCOUNT, not a free trial.
+// The member is charged introEur immediately, so copy must never say "x days
+// free". The honest framing is "first N months €X, then €Y".
 //
-// Prices are EUR because that is what the public site quotes. FastSpring must
-// have EUR configured as the product currency — not a USD price that it
-// auto-converts for display, or the amounts will not match.
+// Prices are EUR because that is what the public site quotes, and they must
+// match the three recurring Stripe prices exactly — same amount, same interval,
+// same currency. A price that only matches after conversion does not match.
 export const PLANS: {
   plan: Plan;
   name: string;
@@ -33,10 +34,16 @@ export const PLANS: {
   intervalMonths: number;
   label: string;
 }[] = [
-  { plan: "3m", name: "3 Month Membership", introEur: 99, renewalEur: 149, intervalMonths: 3, label: "3 months" },
-  { plan: "6m", name: "6 Month Membership", introEur: 199, renewalEur: 299, intervalMonths: 6, label: "6 months" },
-  { plan: "1y", name: "1 Year Membership", introEur: 349, renewalEur: 499, intervalMonths: 12, label: "1 year" },
+  { plan: "3m", name: "3 Month Membership", introEur: 69, renewalEur: 69, intervalMonths: 3, label: "3 months" },
+  { plan: "6m", name: "6 Month Membership", introEur: 119, renewalEur: 119, intervalMonths: 6, label: "6 months" },
+  { plan: "1y", name: "1 Year Membership", introEur: 169, renewalEur: 169, intervalMonths: 12, label: "1 year" },
 ];
+
+/** True while the first period is cheaper than the renewals. Currently false. */
+export function hasIntroDiscount(plan: Plan): boolean {
+  const { introEur, renewalEur } = planDetails(plan);
+  return introEur < renewalEur;
+}
 
 export function planDetails(plan: Plan) {
   const found = PLANS.find((p) => p.plan === plan);
@@ -73,5 +80,7 @@ export function renewalPerMonth(plan: Plan): number {
 /** The auto-renewal disclosure that must sit next to every buy button. */
 export function renewalNotice(plan: Plan): string {
   const { label } = planDetails(plan);
-  return `Then ${renewalLabel(plan)} every ${label}. Cancel anytime.`;
+  return hasIntroDiscount(plan)
+    ? `Then ${renewalLabel(plan)} every ${label}. Cancel anytime.`
+    : `Renews at ${renewalLabel(plan)} every ${label}. Cancel anytime.`;
 }

@@ -5,6 +5,7 @@ import { useState } from "react";
 import type { Plan, Tier } from "@/lib/types";
 import {
   PLANS,
+  hasIntroDiscount,
   introLabel,
   introPerMonth,
   renewalNotice,
@@ -179,12 +180,15 @@ function PlanCard({
           {introLabel(entry.plan)}
         </span>
         <span className="text-[13px] text-muted">
-          for your first {entry.label}
+          {hasIntroDiscount(entry.plan)
+            ? `for your first ${entry.label}`
+            : `every ${entry.label}`}
         </span>
       </div>
       <p className="mt-1 text-xs text-muted">
-        €{introPerMonth(entry.plan)} / month to start, then €
-        {renewalPerMonth(entry.plan)} / month
+        {hasIntroDiscount(entry.plan)
+          ? `€${introPerMonth(entry.plan)} / month to start, then €${renewalPerMonth(entry.plan)} / month`
+          : `€${renewalPerMonth(entry.plan)} / month`}
       </p>
 
       <div className="mt-4">
