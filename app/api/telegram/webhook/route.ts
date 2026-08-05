@@ -323,7 +323,9 @@ export async function POST(req: Request) {
           await sendMessage(
             from.id,
             `<b>WaveHub — ATP value analysis</b>\n\n` +
-              `Few calls, early prices, and an honest no-bet when there's nothing worth taking.\n\n` +
+              `Get full access to selected bets, advanced models, exclusive insights, ` +
+              `premium Telegram data and 20+ framework videos showing the exact system ` +
+              `used to scale.\n\n` +
               `Pick a membership below:`,
             { reply_markup: planKeyboard() },
           );
