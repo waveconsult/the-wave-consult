@@ -8,9 +8,14 @@ function token(): string | null {
   return process.env.TELEGRAM_BOT_TOKEN ?? null;
 }
 
-/** The private group / channel members are let into. Negative id for supergroups. */
+/** The paid group. Negative id for supergroups. */
 export function groupId(): string | null {
   return process.env.TELEGRAM_GROUP_ID ?? null;
+}
+
+/** The free group. Gated on an Instagram follow rather than a subscription. */
+export function freeGroupId(): string | null {
+  return process.env.TELEGRAM_FREE_GROUP_ID ?? null;
 }
 
 export async function tg<T = unknown>(
@@ -69,14 +74,20 @@ export async function createInvite(expiresInHours = 48): Promise<string | null> 
   return r?.invite_link ?? null;
 }
 
-export async function approveJoin(userId: number): Promise<boolean> {
-  const chat = groupId();
+export async function approveJoin(
+  userId: number,
+  chatId?: string | number | null,
+): Promise<boolean> {
+  const chat = chatId ?? groupId();
   if (!chat) return false;
   return (await tg("approveChatJoinRequest", { chat_id: chat, user_id: userId })) !== null;
 }
 
-export async function declineJoin(userId: number): Promise<boolean> {
-  const chat = groupId();
+export async function declineJoin(
+  userId: number,
+  chatId?: string | number | null,
+): Promise<boolean> {
+  const chat = chatId ?? groupId();
   if (!chat) return false;
   return (await tg("declineChatJoinRequest", { chat_id: chat, user_id: userId })) !== null;
 }

@@ -8,14 +8,16 @@ import {
   sendMessage,
   answerCallback,
   createInvite,
+  freeGroupId,
 } from "@/lib/telegram";
 
 // The bot. Telegram POSTs every update here.
 //
-// It does exactly two jobs, per the brief: sell, and let paid people in.
-//   /start            -> plan buttons
-//   plan button       -> a Stripe Checkout link carrying the telegram id
-//   chat_join_request -> approve only if that telegram id has an active sub
+// It sells, and it guards two doors:
+//   /start             -> plan buttons
+//   plan button        -> a Stripe Checkout link carrying the telegram id
+//   join the paid group -> approve only if that telegram id has an active sub
+//   join the free group -> approve once they confirm the Instagram follow
 //
 // Telegram retries on non-200, which would spam the user, so this route
 // answers 200 even when a handler fails.
@@ -23,6 +25,7 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 const SITE = process.env.NEXT_PUBLIC_SITE_URL ?? "https://app.wavehubtennis.com";
+const IG = (process.env.INSTAGRAM_HANDLE ?? "wavehubtennis").replace(/^@/, "");
 
 type TgUser = { id: number; username?: string; first_name?: string };
 
@@ -95,6 +98,58 @@ async function redeemLinkCode(code: string, user: TgUser): Promise<boolean> {
   return true;
 }
 
+/** Mark someone as inside the free group and say hello. */
+async function letIntoFreeGroup(user: TgUser, dmChatId: number | string) {
+  const now = new Date().toISOString();
+  await approveJoin(user.id, freeGroupId());
+  await createAdminClient()
+    .from("telegram_members")
+    .update({ in_free_group: true, ig_follow_confirmed_at: now, updated_at: now })
+    .eq("telegram_id", user.id);
+  await sendMessage(
+    dmChatId,
+    "Thanks — you're in the free group. 🎾\n\nWhen you want the full card, tap /start.",
+  );
+}
+
+/**
+ * The free group's door. We can't verify an Instagram follow — Instagram has no
+ * API for it — so this is a confirmation, and we record when they gave it.
+ *
+ * The join request is left pending, never declined: Telegram only lets a bot
+ * message a stranger while their request is open, so declining first would mean
+ * the prompt never arrives.
+ */
+async function handleFreeJoin(user: TgUser, dmChatId: number | string) {
+  const admin = createAdminClient();
+  const { data } = await admin
+    .from("telegram_members")
+    .select("ig_follow_confirmed_at")
+    .eq("telegram_id", user.id)
+    .maybeSingle();
+
+  // Already confirmed once — don't make them do it again after a rejoin.
+  if (data?.ig_follow_confirmed_at) {
+    await letIntoFreeGroup(user, dmChatId);
+    return;
+  }
+
+  await sendMessage(
+    dmChatId,
+    `<b>One thing before you're in.</b>\n\n` +
+      `The free group runs off the Instagram — that's where the previews and the reasoning go out first.\n\n` +
+      `Follow <b>@${IG}</b>, then tap the second button and I'll let you straight in.`,
+    {
+      reply_markup: {
+        inline_keyboard: [
+          [{ text: `Follow @${IG} →`, url: `https://instagram.com/${IG}` }],
+          [{ text: "I followed — let me in", callback_data: "ig:ok" }],
+        ],
+      },
+    },
+  );
+}
+
 function planKeyboard() {
   return {
     inline_keyboard: PLANS.map((p) => [
@@ -142,10 +197,22 @@ export async function POST(req: Request) {
   }
 
   try {
-    // ── someone asks to join the group ───────────────────────────────────
+    // ── someone asks to join a group ─────────────────────────────────────
     if (update.chat_join_request) {
-      const from = update.chat_join_request.from as TgUser;
+      const jr = update.chat_join_request;
+      const from = jr.from as TgUser;
+      const chatId = String(jr.chat?.id ?? "");
       await upsertUser(from);
+
+      // The free group: ask for the Instagram follow first. The request stays
+      // pending until they confirm — declining it would close the window in
+      // which we're allowed to message someone who never started the bot.
+      const free = freeGroupId();
+      if (free && chatId === String(free)) {
+        await handleFreeJoin(from, jr.user_chat_id ?? from.id);
+        return NextResponse.json({ ok: true });
+      }
+
       if (await isActive(from.id)) {
         await approveJoin(from.id);
         const admin = createAdminClient();
@@ -170,6 +237,13 @@ export async function POST(req: Request) {
       const from = cq.from as TgUser;
       const data: string = cq.data ?? "";
       await answerCallback(cq.id);
+
+      // "I followed" on the free group's gate.
+      if (data === "ig:ok") {
+        await upsertUser(from);
+        await letIntoFreeGroup(from, from.id);
+        return NextResponse.json({ ok: true });
+      }
 
       if (data.startsWith("buy:")) {
         const plan = data.slice(4);
