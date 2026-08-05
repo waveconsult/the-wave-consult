@@ -1,23 +1,15 @@
 import type { Metadata, Viewport } from "next";
-import { Space_Grotesk, Inter, JetBrains_Mono } from "next/font/google";
+import { Inter } from "next/font/google";
 import { ServiceWorkerRegister } from "@/components/ServiceWorkerRegister";
 import { IntroSplash } from "@/components/IntroSplash";
 import "./globals.css";
 
-const spaceGrotesk = Space_Grotesk({
-  variable: "--font-space-grotesk",
-  subsets: ["latin"],
-  display: "swap",
-});
-
+// One face across the marketing site and the app. Space Grotesk and JetBrains
+// Mono used to be loaded here and referenced nowhere — two font downloads on
+// every page for nothing — and General Sans came from Fontshare, a third host
+// for a face the landing does not have.
 const inter = Inter({
   variable: "--font-inter",
-  subsets: ["latin"],
-  display: "swap",
-});
-
-const jetbrainsMono = JetBrains_Mono({
-  variable: "--font-jetbrains-mono",
   subsets: ["latin"],
   display: "swap",
 });
@@ -59,17 +51,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html
-      lang="en"
-      className={`${spaceGrotesk.variable} ${inter.variable} ${jetbrainsMono.variable} h-full antialiased`}
-    >
-      <head>
-        <link rel="preconnect" href="https://api.fontshare.com" crossOrigin="" />
-        <link
-          href="https://api.fontshare.com/v2/css?f[]=general-sans@400,500,600,700&display=swap"
-          rel="stylesheet"
-        />
-      </head>
+    <html lang="en" className={`${inter.variable} h-full antialiased`}>
       <body className="min-h-full">
         <IntroSplash />
         {children}
