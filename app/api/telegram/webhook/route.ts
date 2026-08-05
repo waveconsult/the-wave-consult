@@ -268,8 +268,24 @@ export async function POST(req: Request) {
       return NextResponse.json({ ok: true });
     }
 
-    // ── plain messages ───────────────────────────────────────────────────
     const msg = update.message ?? update.edited_message;
+
+    // ── "/id" inside a group ─────────────────────────────────────────────
+    // Setup helper, and the only reason the bot listens in groups at all:
+    // this is how you read TELEGRAM_GROUP_ID / TELEGRAM_FREE_GROUP_ID off a
+    // chat without inviting some third-party bot into it.
+    if (msg?.chat && msg.chat.type !== "private") {
+      const text: string = (msg.text ?? "").trim();
+      if (text === "/id" || text.startsWith("/id@")) {
+        await sendMessage(
+          msg.chat.id,
+          `<b>${msg.chat.title ?? "This chat"}</b>\nChat ID: <code>${msg.chat.id}</code>`,
+        );
+      }
+      return NextResponse.json({ ok: true });
+    }
+
+    // ── plain messages ───────────────────────────────────────────────────
     if (msg?.from && msg.chat?.type === "private") {
       const from = msg.from as TgUser;
       const text: string = (msg.text ?? "").trim();
