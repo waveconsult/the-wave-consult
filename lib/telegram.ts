@@ -48,9 +48,14 @@ export async function sendMessage(
 }
 
 /**
- * A one-shot invite link. The group is set to approve join requests, so this
- * still lands in the request queue — the bot approves it only if the member is
- * paid. A forwarded link therefore gets nobody in.
+ * An invite link that only produces a *request* to join, which the bot then
+ * approves or declines against the database. That check is the actual lock —
+ * a forwarded or leaked link gets nobody in, because approval still depends on
+ * having paid.
+ *
+ * Deliberately NOT a member_limit:1 link: the Bot API refuses member_limit and
+ * creates_join_request together, and member_limit would let the holder walk
+ * straight in without the bot ever seeing them.
  */
 export async function createInvite(expiresInHours = 48): Promise<string | null> {
   const chat = groupId();
@@ -59,7 +64,7 @@ export async function createInvite(expiresInHours = 48): Promise<string | null> 
     chat_id: chat,
     name: "WaveHub member",
     expire_date: Math.floor(Date.now() / 1000) + expiresInHours * 3600,
-    member_limit: 1,
+    creates_join_request: true,
   });
   return r?.invite_link ?? null;
 }

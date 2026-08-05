@@ -152,13 +152,13 @@ export async function POST(req: Request) {
           { onConflict: "telegram_id" },
         );
 
-        // The group approves join requests, so this link only works for a
-        // paid account — the bot checks the DB before letting anyone in.
+        // The link only opens a join request; the bot approves it after
+        // re-checking this table, so passing it on gets nobody in.
         const invite = await createInvite();
         await sendMessage(
           tgId,
           invite
-            ? `Payment received — you're a member. 🎾\n\nTap to join the group:\n${invite}\n\nThe link is single-use and expires in 48 hours.`
+            ? `Payment received — you're a member. 🎾\n\nTap to join the group:\n${invite}\n\nYou'll be let in within a second or two. The link expires in 48 hours.`
             : `Payment received — you're a member. 🎾\n\nI could not generate your invite link automatically. Reply here and we'll sort it out.`,
         );
       }

@@ -2,7 +2,13 @@ import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getStripe, priceForPlan } from "@/lib/stripe";
 import { PLANS, isPlan, planDetails } from "@/lib/plans";
-import { approveJoin, declineJoin, sendMessage, answerCallback } from "@/lib/telegram";
+import {
+  approveJoin,
+  declineJoin,
+  sendMessage,
+  answerCallback,
+  createInvite,
+} from "@/lib/telegram";
 
 // The bot. Telegram POSTs every update here.
 //
@@ -48,6 +54,45 @@ async function isActive(telegramId: number): Promise<boolean> {
   } catch {
     return false;
   }
+}
+
+/**
+ * Redeem a code minted by /telegram/thanks after a purchase on the website.
+ * This is what ties an anonymous card payment to a Telegram account.
+ * Returns true if the code was valid and the caller is now a member.
+ */
+async function redeemLinkCode(code: string, user: TgUser): Promise<boolean> {
+  const admin = createAdminClient();
+  const { data: row } = await admin
+    .from("telegram_link_codes")
+    .select("*")
+    .eq("code", code)
+    .is("used_at", null)
+    .maybeSingle();
+  if (!row) return false;
+
+  const now = new Date().toISOString();
+  await admin.from("telegram_members").upsert(
+    {
+      telegram_id: user.id,
+      username: user.username ?? null,
+      first_name: user.first_name ?? null,
+      email: row.email,
+      stripe_customer_id: row.stripe_customer_id,
+      stripe_subscription_id: row.stripe_subscription_id,
+      plan: row.plan ?? undefined,
+      status: "active",
+      current_period_end: row.current_period_end,
+      updated_at: now,
+    },
+    { onConflict: "telegram_id" },
+  );
+  // Burn the code so a shared link can't onboard a second account.
+  await admin
+    .from("telegram_link_codes")
+    .update({ used_at: now, used_by: user.id })
+    .eq("code", code);
+  return true;
 }
 
 function planKeyboard() {
@@ -157,10 +202,20 @@ export async function POST(req: Request) {
       await upsertUser(from);
 
       if (text.startsWith("/start") || text.startsWith("/join") || text.startsWith("/buy")) {
+        // "/start <code>" — arrived from the website's thank-you page.
+        const payload = text.split(/\s+/)[1];
+        if (payload) await redeemLinkCode(payload, from);
+
         if (await isActive(from.id)) {
+          // Always hand out a fresh link rather than pointing at an old one:
+          // the join request is checked against the database anyway, so an
+          // extra link costs nothing and saves a support message.
+          const invite = await createInvite();
           await sendMessage(
             from.id,
-            "Your membership is active. If you're not in the group yet, use the invite link I sent you — or reply here and I'll issue a new one.",
+            invite
+              ? `Your membership is active. 🎾\n\nTap to join the group:\n${invite}`
+              : "Your membership is active, but I couldn't generate an invite link just now. Reply here and we'll sort it out.",
           );
         } else {
           await sendMessage(
