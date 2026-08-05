@@ -5,6 +5,8 @@ import { isPlan } from "@/lib/plans";
 import type { Plan } from "@/lib/types";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createInvite, removeMember, sendMessage } from "@/lib/telegram";
+import { mintLinkCode, botDeepLink, accessEmail } from "@/lib/telegram-link";
+import { planDetails } from "@/lib/plans";
 
 /** "tg_12345" (client_reference_id) or metadata.telegram_id -> 12345 */
 function telegramIdFrom(
@@ -69,6 +71,26 @@ async function findProfileId(
 
 const idOf = (v: string | { id: string } | null | undefined): string | null =>
   typeof v === "string" ? v : v?.id ?? null;
+
+/**
+ * Best-effort — a failed email must never fail the webhook, or Stripe retries
+ * a payment we already granted access for.
+ */
+async function sendAccessEmail(to: string, link: string, plan: Plan | null) {
+  const key = process.env.RESEND_API_KEY;
+  if (!key) return;
+  try {
+    const { Resend } = await import("resend");
+    await new Resend(key).emails.send({
+      from: process.env.RESEND_FROM ?? "WaveHub <onboarding@resend.dev>",
+      to,
+      subject: "Your WaveHub access — one step left",
+      html: accessEmail(link, plan ? planDetails(plan).name : null),
+    });
+  } catch {
+    // The thank-you page still shows the same link.
+  }
+}
 
 export async function POST(req: Request) {
   const secret = process.env.STRIPE_WEBHOOK_SECRET;
@@ -161,6 +183,21 @@ export async function POST(req: Request) {
             ? `Payment received — you're a member. 🎾\n\nTap to join the group:\n${invite}\n\nYou'll be let in within a second or two. The link expires in 48 hours.`
             : `Payment received — you're a member. 🎾\n\nI could not generate your invite link automatically. Reply here and we'll sort it out.`,
         );
+      } else if (email) {
+        // Bought on the website, so nothing here knows their Telegram account.
+        // The thank-you page hands them a deep link, but only while that tab is
+        // open — close it and the payment has no way back to a person. So the
+        // same code goes out by email, which they keep.
+        const code = await mintLinkCode({
+          sessionId: session.id,
+          customerId,
+          subscriptionId: subId,
+          email,
+          plan,
+          currentPeriodEnd: sub ? periodEndIso(sub) : null,
+        });
+        const link = code ? botDeepLink(code) : null;
+        if (link) await sendAccessEmail(email, link, plan);
       }
     }
 

@@ -1,8 +1,7 @@
 import type { Metadata } from "next";
-import { randomUUID } from "node:crypto";
 import { getStripe, planForPrice } from "@/lib/stripe";
 import { isPlan } from "@/lib/plans";
-import { createAdminClient } from "@/lib/supabase/admin";
+import { mintLinkCode } from "@/lib/telegram-link";
 
 export const metadata: Metadata = { title: "You're in" };
 export const dynamic = "force-dynamic";
@@ -26,14 +25,6 @@ async function linkCodeFor(sessionId: string): Promise<string | null> {
     });
     if (session.payment_status === "unpaid") return null;
 
-    const admin = createAdminClient();
-    const { data: existing } = await admin
-      .from("telegram_link_codes")
-      .select("code")
-      .eq("stripe_session_id", sessionId)
-      .maybeSingle();
-    if (existing?.code) return existing.code;
-
     const sub =
       typeof session.subscription === "object" && session.subscription
         ? session.subscription
@@ -49,19 +40,16 @@ async function linkCodeFor(sessionId: string): Promise<string | null> {
       ? metaPlan
       : planForPrice(s?.items?.data?.[0]?.price?.id);
 
-    const code = randomUUID().replace(/-/g, ""); // 32 chars, safe as a /start payload
-    const { error } = await admin.from("telegram_link_codes").insert({
-      code,
-      stripe_session_id: sessionId,
-      stripe_customer_id:
+    return await mintLinkCode({
+      sessionId,
+      customerId:
         typeof session.customer === "string" ? session.customer : (session.customer?.id ?? null),
-      stripe_subscription_id: sub?.id ?? null,
-      email: session.customer_details?.email?.toLowerCase() ?? null,
-      plan: plan ?? null,
-      current_period_end:
+      subscriptionId: sub?.id ?? null,
+      email: session.customer_details?.email ?? null,
+      plan,
+      currentPeriodEnd:
         typeof secs === "number" ? new Date(secs * 1000).toISOString() : null,
     });
-    return error ? null : code;
   } catch {
     return null;
   }
