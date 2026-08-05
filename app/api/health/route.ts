@@ -14,8 +14,75 @@ import { webhookSecretLength } from "@/lib/fastspring-server";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-export function GET() {
+// ?stripe=1 asks Stripe what it actually thinks of our three price ids.
+//
+// Presence of the variables tells you nothing about whether checkout works:
+// a product id instead of a price id, a one-off price instead of a recurring
+// one, or live prices under a test key all look identical from outside and all
+// fail the same way. This resolves each id and reports what came back.
+// Errors are returned as their Stripe code — no secrets, no key material.
+async function stripeReport() {
+  const key = process.env.STRIPE_SECRET_KEY ?? "";
+  const out: Record<string, unknown> = {
+    keyMode: key.startsWith("sk_live") ? "live" : key.startsWith("sk_test") ? "test" : "unknown",
+  };
+  const prices: Record<string, unknown> = {};
+  for (const plan of ["3m", "6m", "1y"] as const) {
+    const id = tryPriceForPlan(plan);
+    if (!id) {
+      prices[plan] = { configured: false };
+      continue;
+    }
+    prices[plan] = {
+      configured: true,
+      looksLikePriceId: id.startsWith("price_"),
+      ...(await describePrice(id)),
+    };
+  }
+  out.prices = prices;
+  return out;
+}
+
+function tryPriceForPlan(plan: "3m" | "6m" | "1y"): string | null {
+  const v =
+    plan === "3m"
+      ? process.env.STRIPE_PRICE_3M
+      : plan === "6m"
+        ? process.env.STRIPE_PRICE_6M
+        : process.env.STRIPE_PRICE_1Y;
+  return v?.trim() || null;
+}
+
+async function describePrice(id: string) {
+  try {
+    const { getStripe } = await import("@/lib/stripe");
+    const p = await getStripe().prices.retrieve(id.trim());
+    return {
+      ok: true,
+      livemode: p.livemode,
+      active: p.active,
+      currency: p.currency,
+      amount: p.unit_amount,
+      recurring: p.recurring
+        ? `${p.recurring.interval_count} ${p.recurring.interval}`
+        : null,
+    };
+  } catch (e: unknown) {
+    const err = e as { code?: string; type?: string; message?: string };
+    return {
+      ok: false,
+      // Stripe's own code is the useful part: resource_missing, invalid_api_key…
+      error: err.code ?? err.type ?? "unknown",
+      message: err.message?.slice(0, 200) ?? null,
+    };
+  }
+}
+
+export async function GET(req: Request) {
+  const wantStripe = new URL(req.url).searchParams.get("stripe") === "1";
   return NextResponse.json({
+    stripe: wantStripe ? await stripeReport() : "pass ?stripe=1 to probe",
+    siteUrl: process.env.NEXT_PUBLIC_SITE_URL ?? null,
     // Which deployment is actually answering. Vercel injects these itself, so
     // they identify the running deployment even when our own variables are
     // missing — which is the case that is hardest to diagnose from outside:
