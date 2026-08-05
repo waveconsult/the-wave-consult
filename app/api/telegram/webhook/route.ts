@@ -216,6 +216,8 @@ export async function POST(req: Request) {
         return NextResponse.json({ ok: true });
       }
 
+      const dm = jr.user_chat_id ?? from.id;
+
       if (await isActive(from.id)) {
         await approveJoin(from.id);
         const admin = createAdminClient();
@@ -223,13 +225,16 @@ export async function POST(req: Request) {
           .from("telegram_members")
           .update({ in_group: true, joined_at: new Date().toISOString(), removed_at: null })
           .eq("telegram_id", from.id);
-        await sendMessage(from.id, "You're in. Welcome to WaveHub. 🎾");
+        await sendMessage(dm, "You're in. Welcome to WaveHub. 🎾");
       } else {
-        await declineJoin(from.id);
+        // Pitch first, decline second. Processing the request shuts the window
+        // in which Telegram lets us message someone who never started the bot,
+        // and someone knocking on the paid door is exactly who should hear it.
         await sendMessage(
-          from.id,
+          dm,
           "That group is for members only.\n\nTap /start to see the plans — access is instant once you're set up.",
         );
+        await declineJoin(from.id);
       }
       return NextResponse.json({ ok: true });
     }
