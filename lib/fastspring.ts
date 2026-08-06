@@ -16,9 +16,8 @@ import type { Plan } from "./types";
 // PLANS[].intervalMonths — a "1 year" product set to bill every 3 months will
 // charge the member four times a year.
 const ENV_BY_PLAN: Record<Plan, string> = {
-  "3m": "NEXT_PUBLIC_FASTSPRING_PRODUCT_3M",
-  "6m": "NEXT_PUBLIC_FASTSPRING_PRODUCT_6M",
-  "1y": "NEXT_PUBLIC_FASTSPRING_PRODUCT_1Y",
+  silver: "NEXT_PUBLIC_FASTSPRING_PRODUCT_SILVER",
+  gold: "NEXT_PUBLIC_FASTSPRING_PRODUCT_GOLD",
 };
 
 // Next.js inlines process.env.NEXT_PUBLIC_* at build time only for statically
@@ -41,12 +40,10 @@ function clean(value: string | undefined): string | undefined {
 
 function rawPath(plan: Plan): string | undefined {
   switch (plan) {
-    case "3m":
-      return clean(process.env.NEXT_PUBLIC_FASTSPRING_PRODUCT_3M);
-    case "6m":
-      return clean(process.env.NEXT_PUBLIC_FASTSPRING_PRODUCT_6M);
-    case "1y":
-      return clean(process.env.NEXT_PUBLIC_FASTSPRING_PRODUCT_1Y);
+    case "silver":
+      return clean(process.env.NEXT_PUBLIC_FASTSPRING_PRODUCT_SILVER);
+    case "gold":
+      return clean(process.env.NEXT_PUBLIC_FASTSPRING_PRODUCT_GOLD);
   }
 }
 
@@ -77,8 +74,7 @@ export function tryProductForPlan(plan: Plan): string | null {
 export function planForProduct(path: string | null | undefined): Plan | null {
   if (!path) return null;
   const needle = path.trim();
-  if (needle === rawPath("3m")) return "3m";
-  if (needle === rawPath("6m")) return "6m";
-  if (needle === rawPath("1y")) return "1y";
+  if (needle === rawPath("silver")) return "silver";
+  if (needle === rawPath("gold")) return "gold";
   return null;
 }

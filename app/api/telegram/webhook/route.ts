@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { getStripe, priceForPlan } from "@/lib/stripe";
+import { getStripe, lineItemsForPlan } from "@/lib/stripe";
 import { PLANS, isPlan, planDetails } from "@/lib/plans";
 import {
   approveJoin,
@@ -155,9 +155,9 @@ function planKeyboard() {
     inline_keyboard: PLANS.map((p) => [
       {
         text:
-          p.introEur < p.renewalEur
-            ? `${p.name} — €${p.introEur}, then €${p.renewalEur}`
-            : `${p.name} — €${p.renewalEur}`,
+          p.setupEur > 0
+            ? `${p.name} — €${p.firstYearEur} first year, then €${p.renewalEur}`
+            : `${p.name} — €${p.renewalEur} / year`,
         callback_data: `buy:${p.plan}`,
       },
     ]),
@@ -170,7 +170,7 @@ async function checkoutUrl(plan: string, telegramId: number): Promise<string | n
     const stripe = getStripe();
     const session = await stripe.checkout.sessions.create({
       mode: "subscription",
-      line_items: [{ price: priceForPlan(plan), quantity: 1 }],
+      line_items: lineItemsForPlan(plan),
       // this is how the Stripe webhook learns which Telegram account paid
       client_reference_id: `tg_${telegramId}`,
       metadata: { telegram_id: String(telegramId), plan, source: "telegram_bot" },
@@ -263,16 +263,18 @@ export async function POST(req: Request) {
         }
         const d = planDetails(plan as never);
         const terms =
-          d.introEur < d.renewalEur
-            ? `€${d.introEur} now, then €${d.renewalEur} every ${d.label}. Cancel anytime.`
-            : `€${d.renewalEur} every ${d.label}. Cancel anytime.`;
+          d.setupEur > 0
+            ? `€${d.firstYearEur} today — that's €${d.renewalEur} for the year plus a one-off €${d.setupEur}.\n` +
+              `Renews at €${d.renewalEur} a year, same as Silver. Cancel anytime.`
+            : `€${d.renewalEur} a year. Cancel anytime.`;
         await sendMessage(
           from.id,
           `<b>${d.name}</b>\n${terms}\n\n` +
-            `Complete the payment and I'll send your invite link straight back here.`,
+            d.features.map((f) => `• ${f}`).join("\n") +
+            `\n\nComplete the payment and I'll send your invite link straight back here.`,
           {
             reply_markup: {
-              inline_keyboard: [[{ text: `Pay €${d.introEur} →`, url }]],
+              inline_keyboard: [[{ text: `Pay €${d.firstYearEur} →`, url }]],
             },
           },
         );

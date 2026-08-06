@@ -18,17 +18,15 @@ export function getStripe(): Stripe {
   return _stripe;
 }
 
-// Map a membership plan to its Stripe Price id. Create three recurring prices
-// in the Stripe dashboard — €149 every 3 months, €299 every 6 months, €599
-// every 12 months (see lib/plans.ts) — and paste their ids here via env.
-// The recurring interval on each Stripe price must match PLANS[].intervalMonths.
+// The recurring price of a tier. Create one yearly price per tier in the
+// Stripe dashboard — €399/year for both (see lib/plans.ts) — and paste the ids
+// in via env. Two separate prices despite the identical amount: a subscription
+// must still say which tier it came from, and one shared price would make
+// Silver and Gold indistinguishable the moment the first invoice is paid.
+// The interval on each price must match PLANS[].intervalMonths.
 export function priceForPlan(plan: Plan): string {
   const id =
-    plan === "3m"
-      ? process.env.STRIPE_PRICE_3M
-      : plan === "6m"
-        ? process.env.STRIPE_PRICE_6M
-        : process.env.STRIPE_PRICE_1Y;
+    plan === "silver" ? process.env.STRIPE_PRICE_SILVER : process.env.STRIPE_PRICE_GOLD;
   if (!id) {
     throw new Error(
       `Missing Stripe price for plan "${plan}". Set STRIPE_PRICE_${plan.toUpperCase()} in .env.local.`,
@@ -37,12 +35,28 @@ export function priceForPlan(plan: Plan): string {
   return id;
 }
 
+// Gold's one-off, charged on the first invoice only. A ONE-TIME Stripe
+// price, not recurring — Stripe puts it on the first invoice of a subscription
+// checkout and never bills it again. Null for tiers without one.
+export function setupPriceForPlan(plan: Plan): string | null {
+  if (plan !== "gold") return null;
+  return process.env.STRIPE_PRICE_GOLD_SETUP?.trim() || null;
+}
+
+/** Both line items for a checkout, in the order they should appear. */
+export function lineItemsForPlan(plan: Plan): { price: string; quantity: number }[] {
+  const items = [{ price: priceForPlan(plan), quantity: 1 }];
+  const setup = setupPriceForPlan(plan);
+  if (setup) items.push({ price: setup, quantity: 1 });
+  return items;
+}
+
 // Reverse of priceForPlan — used by the webhook as a fallback when a
-// subscription event doesn't carry the plan in metadata.
+// subscription event doesn't carry the plan in metadata. Only the recurring
+// prices are checked: the setup price never appears on a subscription.
 export function planForPrice(priceId: string | null | undefined): Plan | null {
   if (!priceId) return null;
-  if (priceId === process.env.STRIPE_PRICE_3M) return "3m";
-  if (priceId === process.env.STRIPE_PRICE_6M) return "6m";
-  if (priceId === process.env.STRIPE_PRICE_1Y) return "1y";
+  if (priceId === process.env.STRIPE_PRICE_SILVER) return "silver";
+  if (priceId === process.env.STRIPE_PRICE_GOLD) return "gold";
   return null;
 }

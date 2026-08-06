@@ -3,7 +3,7 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { getStripe, priceForPlan } from "@/lib/stripe";
+import { getStripe, lineItemsForPlan } from "@/lib/stripe";
 import { isPlan } from "@/lib/plans";
 import { getAccountManagementUrl } from "@/lib/fastspring-server";
 import { IS_FASTSPRING } from "@/lib/payments";
@@ -79,7 +79,7 @@ export async function startCheckout(
     const session = await stripe.checkout.sessions.create({
       mode: "subscription",
       customer: customerId,
-      line_items: [{ price: priceForPlan(plan), quantity: 1 }],
+      line_items: lineItemsForPlan(plan),
       metadata: { user_id: user.id, plan },
       subscription_data: { metadata: { user_id: user.id, plan } },
       allow_promotion_codes: true,

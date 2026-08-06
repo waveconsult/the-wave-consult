@@ -2,48 +2,75 @@ import type { Plan } from "./types";
 
 // THE single source of truth for what a membership costs.
 //
-// FastSpring will not activate a store unless product names and unit prices
-// match the public website exactly, so these values must stay in lockstep with
-// three other places:
-//   1. the FastSpring dashboard (Products → price, interval, trial)
+// These values must stay in lockstep with two other places:
+//   1. the Stripe dashboard (one yearly price per tier, plus Gold's
+//      one-off setup price)
 //   2. wavehub-landing/index.html (the public pricing section)
-//   3. the app's plans page (which reads this file)
-// Change a price here and you must change it in 1 and 2 as well.
+// Change a price here and you must change it in both.
 //
-// Pricing model: FLAT. Every period costs the same, so introEur == renewalEur.
-// The two fields stay because the structure supports an introductory discount —
-// a first period cheaper than the renewals — and switching back is then a
-// number change here plus a coupon on the Stripe side, not a rewrite. Copy
-// throughout the app asks hasIntroDiscount() rather than assuming either shape.
+// Pricing model: yearly only, two tiers.
 //
-// If an intro price is ever reintroduced: it is a DISCOUNT, not a free trial.
-// The member is charged introEur immediately, so copy must never say "x days
-// free". The honest framing is "first N months €X, then €Y".
+//   Silver   €399 today, €399 every year after
+//   Gold     €599 today, €399 every year after
 //
-// Prices are EUR because that is what the public site quotes, and they must
-// match the three recurring Stripe prices exactly — same amount, same interval,
-// same currency. A price that only matches after conversion does not match.
+// Gold is NOT a more expensive subscription — it is the same €399/year
+// plus a €200 one-off on the first invoice. That is deliberate and honest:
+// the models and the education library are delivered once, so they are paid
+// for once. Renewals cost the same as Silver because after the first year
+// both tiers are receiving the same thing.
+//
+// In Stripe this is a subscription checkout carrying a second, one-time line
+// item — it lands on the first invoice and never appears again. Each tier has
+// its own yearly price even though the amounts are identical, so that a
+// subscription still identifies which tier it came from.
+//
+// Prices are EUR because that is what the public site quotes, and the Stripe
+// prices must match exactly — same amount, same interval, same currency.
 export const PLANS: {
   plan: Plan;
   name: string;
-  /** Charged once, for the first period. */
-  introEur: number;
-  /** Charged on every renewal thereafter. */
+  /** Charged today. Includes the one-off where a tier has one. */
+  firstYearEur: number;
+  /** Charged on every renewal after that. */
   renewalEur: number;
-  /** Billing interval in months — must equal the FastSpring product interval. */
+  /** The one-off part of the first payment. 0 when the tier has none. */
+  setupEur: number;
+  /** Billing interval in months — must equal the Stripe price interval. */
   intervalMonths: number;
   label: string;
+  /** What the tier actually includes, in the order it should be listed. */
+  features: string[];
 }[] = [
-  { plan: "3m", name: "3 Month Membership", introEur: 69, renewalEur: 69, intervalMonths: 3, label: "3 months" },
-  { plan: "6m", name: "6 Month Membership", introEur: 119, renewalEur: 119, intervalMonths: 6, label: "6 months" },
-  { plan: "1y", name: "1 Year Membership", introEur: 169, renewalEur: 169, intervalMonths: 12, label: "1 year" },
+  {
+    plan: "silver",
+    name: "Silver",
+    firstYearEur: 399,
+    renewalEur: 399,
+    setupEur: 0,
+    intervalMonths: 12,
+    label: "year",
+    features: [
+      "Every pick, with the reasoning behind it",
+      "Live in-play calls as matches turn",
+      "Tournament previews, draw by draw",
+    ],
+  },
+  {
+    plan: "gold",
+    name: "Gold",
+    firstYearEur: 599,
+    renewalEur: 399,
+    setupEur: 200,
+    intervalMonths: 12,
+    label: "year",
+    features: [
+      "Everything in Silver",
+      "The models the calls are built on",
+      "The full education library",
+      "Paid once — renewals cost the same as Silver",
+    ],
+  },
 ];
-
-/** True while the first period is cheaper than the renewals. Currently false. */
-export function hasIntroDiscount(plan: Plan): boolean {
-  const { introEur, renewalEur } = planDetails(plan);
-  return introEur < renewalEur;
-}
 
 export function planDetails(plan: Plan) {
   const found = PLANS.find((p) => p.plan === plan);
@@ -52,26 +79,25 @@ export function planDetails(plan: Plan) {
 }
 
 export function isPlan(value: unknown): value is Plan {
-  return value === "3m" || value === "6m" || value === "1y";
+  return value === "silver" || value === "gold";
 }
 
-/** What you pay today, formatted — e.g. "€99". */
-export function introLabel(plan: Plan): string {
-  return `€${planDetails(plan).introEur}`;
+/** Does this tier carry a one-off charge on the first invoice? */
+export function hasSetupFee(plan: Plan): boolean {
+  return planDetails(plan).setupEur > 0;
 }
 
-/** What each renewal costs, formatted — e.g. "€149". */
+/** What you pay today, formatted — e.g. "€599". */
+export function firstYearLabel(plan: Plan): string {
+  return `€${planDetails(plan).firstYearEur}`;
+}
+
+/** What each renewal costs, formatted — e.g. "€399". */
 export function renewalLabel(plan: Plan): string {
   return `€${planDetails(plan).renewalEur}`;
 }
 
-/** Real monthly cost of the first period. Derived, never stored. */
-export function introPerMonth(plan: Plan): number {
-  const { introEur, intervalMonths } = planDetails(plan);
-  return Math.round(introEur / intervalMonths);
-}
-
-/** Real monthly cost once it renews at full price. */
+/** Real monthly cost once it renews. Derived, never stored. */
 export function renewalPerMonth(plan: Plan): number {
   const { renewalEur, intervalMonths } = planDetails(plan);
   return Math.round(renewalEur / intervalMonths);
@@ -79,8 +105,8 @@ export function renewalPerMonth(plan: Plan): number {
 
 /** The auto-renewal disclosure that must sit next to every buy button. */
 export function renewalNotice(plan: Plan): string {
-  const { label } = planDetails(plan);
-  return hasIntroDiscount(plan)
-    ? `Then ${renewalLabel(plan)} every ${label}. Cancel anytime.`
+  const { label, setupEur } = planDetails(plan);
+  return setupEur > 0
+    ? `Includes a one-off €${setupEur}. Renews at ${renewalLabel(plan)} every ${label}. Cancel anytime.`
     : `Renews at ${renewalLabel(plan)} every ${label}. Cancel anytime.`;
 }

@@ -4,9 +4,13 @@ export type Role = "user" | "admin";
 // Access is binary: you are a member or you are not. The old core/private split
 // never gated anything (no min_tier on content), so it collapsed into one tier.
 export type Tier = "none" | "member";
-// How long the membership was bought for. Drives price and renewal only —
-// every plan grants exactly the same access.
-export type Plan = "3m" | "6m" | "1y";
+// Which membership was bought. Both bill yearly; Gold adds a one-off
+// charge on the first invoice for the models and the education library.
+//
+// Unlike the old 3m/6m/1y durations, these are NOT the same product at
+// different lengths — Gold grants strictly more. Anything that gates
+// content must therefore read the plan, not just the tier.
+export type Plan = "silver" | "gold";
 export type Strategy = "conservative" | "standard" | "aggressive";
 export type BetStatus = "open" | "won" | "lost" | "void";
 

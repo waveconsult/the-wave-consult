@@ -5,9 +5,8 @@ import { useState } from "react";
 import type { Plan, Tier } from "@/lib/types";
 import {
   PLANS,
-  hasIntroDiscount,
-  introLabel,
-  introPerMonth,
+  firstYearLabel,
+  hasSetupFee,
   renewalNotice,
   renewalPerMonth,
 } from "@/lib/plans";
@@ -20,23 +19,12 @@ type Tab = "premium" | "free";
 
 
 
-// One membership — everything is included on every plan. The only difference
-// between plans is how long you commit for. Keep this list in sync with the
-// public landing page.
-const FEATURES = [
-  "Daily bet feed (ATP)",
-  "Match insights & stats",
-  "CLV tracking",
-  "Premium web tools",
-  "Private live-info chat",
-];
-
-// The yearly plan carries the emphasis and the "Best value" badge. That claim
-// is only true because of the numbers in lib/plans.ts: on renewal it works out
-// at €42/month against €50 for the shorter terms. If those change so that the
-// yearly plan is no longer the cheapest per month, this badge becomes a false
-// claim — move the emphasis or change the wording, do not leave it as is.
-const RECOMMENDED: Plan = "1y";
+// Gold carries the emphasis. The badge says "Most complete" rather than the old
+// "Best value": the tiers no longer differ in length but in what you get, and
+// both renew at the same price, so a cheapest-per-month claim would be
+// meaningless. Per-tier contents live in lib/plans.ts and are rendered from
+// there, so the app and the landing page cannot drift apart.
+const RECOMMENDED: Plan = "gold";
 
 export function PlansView({
   currentTier,
@@ -76,19 +64,9 @@ export function PlansView({
               WaveHub Membership
             </h3>
             <p className="mt-1 text-xs text-muted">
-              One membership. Everything included, whichever length you pick.
+              Billed yearly. Gold adds the models and the education library for a
+              one-off, then renews at the same price as Silver.
             </p>
-            <ul className="mt-4 space-y-1.5">
-              {FEATURES.map((f) => (
-                <li
-                  key={f}
-                  className="flex items-start gap-2.5 text-[13px] text-muted"
-                >
-                  <span className="mt-0.5 text-primary-bright">✓</span>
-                  {f}
-                </li>
-              ))}
-            </ul>
           </div>
 
           {PLANS.map((p) => (
@@ -171,25 +149,32 @@ function PlanCard({
     >
       {emphasis && (
         <span className="mono absolute right-4 top-4 rounded-md border border-primary/30 bg-primary/15 px-2 py-1 text-[9px] font-bold uppercase tracking-widest text-primary-bright">
-          Best value
+          Most complete
         </span>
       )}
       <h3 className="font-display text-xl font-bold text-text">{entry.name}</h3>
       <div className="mt-3 flex items-baseline gap-1.5">
         <span className="mono text-[30px] font-bold text-text">
-          {introLabel(entry.plan)}
+          {firstYearLabel(entry.plan)}
         </span>
         <span className="text-[13px] text-muted">
-          {hasIntroDiscount(entry.plan)
+          {hasSetupFee(entry.plan)
             ? `for your first ${entry.label}`
             : `every ${entry.label}`}
         </span>
       </div>
       <p className="mt-1 text-xs text-muted">
-        {hasIntroDiscount(entry.plan)
-          ? `€${introPerMonth(entry.plan)} / month to start, then €${renewalPerMonth(entry.plan)} / month`
-          : `€${renewalPerMonth(entry.plan)} / month`}
+        {`€${renewalPerMonth(entry.plan)} / month on renewal`}
       </p>
+
+      <ul className="mt-4 space-y-1.5">
+        {entry.features.map((f) => (
+          <li key={f} className="flex items-start gap-2.5 text-[13px] text-muted">
+            <span className="mt-0.5 text-primary-bright">✓</span>
+            {f}
+          </li>
+        ))}
+      </ul>
 
       <div className="mt-4">
         {isCurrent ? (
@@ -203,7 +188,7 @@ function PlanCard({
               product={fsProduct}
               userId={userId}
               email={email}
-              label={`Start — ${introLabel(entry.plan)}`}
+              label={`Start — ${firstYearLabel(entry.plan)}`}
               className={btnClass}
             />
           ) : (
@@ -215,7 +200,7 @@ function PlanCard({
           <form action={formAction}>
             <input type="hidden" name="plan" value={entry.plan} />
             <button type="submit" disabled={pending} className={btnClass}>
-              {pending ? "Redirecting…" : `Start — ${introLabel(entry.plan)}`}
+              {pending ? "Redirecting…" : `Start — ${firstYearLabel(entry.plan)}`}
             </button>
             {state.status === "error" && (
               <p className="mt-2 text-center text-xs text-neg">{state.message}</p>

@@ -26,14 +26,16 @@ async function stripeReport() {
   const out: Record<string, unknown> = {
     keyMode: key.startsWith("sk_live") ? "live" : key.startsWith("sk_test") ? "test" : "unknown",
   };
+  // Three ids, not two: Gold's one-off setup price is a separate Stripe object
+  // and a separate way for the checkout to break, so it gets checked too. It
+  // must be one-time — a recurring price here would bill the €200 every year.
   const prices: Record<string, unknown> = {};
-  for (const plan of ["3m", "6m", "1y"] as const) {
-    const id = tryPriceForPlan(plan);
+  for (const [label, id] of Object.entries(configuredPrices())) {
     if (!id) {
-      prices[plan] = { configured: false };
+      prices[label] = { configured: false };
       continue;
     }
-    prices[plan] = {
+    prices[label] = {
       configured: true,
       looksLikePriceId: id.startsWith("price_"),
       ...(await describePrice(id)),
@@ -43,14 +45,13 @@ async function stripeReport() {
   return out;
 }
 
-function tryPriceForPlan(plan: "3m" | "6m" | "1y"): string | null {
-  const v =
-    plan === "3m"
-      ? process.env.STRIPE_PRICE_3M
-      : plan === "6m"
-        ? process.env.STRIPE_PRICE_6M
-        : process.env.STRIPE_PRICE_1Y;
-  return v?.trim() || null;
+function configuredPrices(): Record<string, string | null> {
+  const clean = (v: string | undefined) => v?.trim() || null;
+  return {
+    silver: clean(process.env.STRIPE_PRICE_SILVER),
+    gold: clean(process.env.STRIPE_PRICE_GOLD),
+    goldSetup: clean(process.env.STRIPE_PRICE_GOLD_SETUP),
+  };
 }
 
 async function describePrice(id: string) {
@@ -114,11 +115,12 @@ export async function GET(req: Request) {
     isFastSpring: IS_FASTSPRING,
     // Public storefront id — already visible in the page source.
     storefront: process.env.NEXT_PUBLIC_FASTSPRING_STOREFRONT ?? null,
-    // Are the three product paths configured? Values, not secrets.
+    // Are the product paths configured? Values, not secrets. FastSpring is not
+    // the live processor — kept only so flipping the provider flag is still a
+    // one-line change rather than an archaeology exercise.
     fastSpringProducts: {
-      "3m": tryProductForPlan("3m"),
-      "6m": tryProductForPlan("6m"),
-      "1y": tryProductForPlan("1y"),
+      silver: tryProductForPlan("silver"),
+      gold: tryProductForPlan("gold"),
     },
     // Length only, never the value. A secret generated as 32 random bytes in
     // base64url is 43 characters. Anything far longer means it was pasted more

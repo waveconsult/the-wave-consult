@@ -1,10 +1,10 @@
 import { NextResponse } from "next/server";
-import { getStripe, priceForPlan } from "@/lib/stripe";
+import { getStripe, lineItemsForPlan } from "@/lib/stripe";
 import { isPlan } from "@/lib/plans";
 
 // Buy button target for the static marketing site.
 //
-//   https://app.wavehubtennis.com/api/checkout?plan=3m
+//   https://app.wavehubtennis.com/api/checkout?plan=silver
 //
 // Creates a Stripe Checkout session and 303s the browser straight into it, so
 // the landing page needs no JavaScript and no Stripe keys. After paying, the
@@ -17,7 +17,7 @@ const SITE = process.env.NEXT_PUBLIC_SITE_URL ?? "https://app.wavehubtennis.com"
 
 export async function GET(req: Request) {
   const url = new URL(req.url);
-  const plan = url.searchParams.get("plan") ?? "3m";
+  const plan = url.searchParams.get("plan") ?? "silver";
   const tg = url.searchParams.get("tg"); // optional: already-known telegram id
 
   if (!isPlan(plan)) {
@@ -28,7 +28,9 @@ export async function GET(req: Request) {
     const stripe = getStripe();
     const session = await stripe.checkout.sessions.create({
       mode: "subscription",
-      line_items: [{ price: priceForPlan(plan), quantity: 1 }],
+      // Gold carries a second, one-time line item — Stripe puts it on the
+      // first invoice and never bills it again.
+      line_items: lineItemsForPlan(plan),
       client_reference_id: tg ? `tg_${tg}` : undefined,
       metadata: { plan, source: "landing", ...(tg ? { telegram_id: tg } : {}) },
       subscription_data: { metadata: { plan, ...(tg ? { telegram_id: tg } : {}) } },
