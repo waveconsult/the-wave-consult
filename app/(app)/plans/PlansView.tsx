@@ -5,10 +5,9 @@ import { useState } from "react";
 import type { Plan, Tier } from "@/lib/types";
 import {
   PLANS,
-  firstYearLabel,
-  hasSetupFee,
+  perMonth,
+  priceLabel,
   renewalNotice,
-  renewalPerMonth,
 } from "@/lib/plans";
 import { tryProductForPlan } from "@/lib/fastspring";
 import { IS_FASTSPRING, PROCESSOR_NAME } from "@/lib/payments";
@@ -20,10 +19,10 @@ type Tab = "premium" | "free";
 
 
 // Gold carries the emphasis. The badge says "Most complete" rather than the old
-// "Best value": the tiers no longer differ in length but in what you get, and
-// both renew at the same price, so a cheapest-per-month claim would be
-// meaningless. Per-tier contents live in lib/plans.ts and are rendered from
-// there, so the app and the landing page cannot drift apart.
+// "Best value": the tiers differ in what you get, not in how long you commit
+// for, so a cheapest-per-month claim would be measuring the wrong thing.
+// Per-tier contents live in lib/plans.ts and are rendered from there, so the
+// app and the landing page cannot drift apart.
 const RECOMMENDED: Plan = "gold";
 
 export function PlansView({
@@ -64,8 +63,8 @@ export function PlansView({
               WaveHub Membership
             </h3>
             <p className="mt-1 text-xs text-muted">
-              Billed yearly. Gold adds the models and the education library for a
-              one-off, then renews at the same price as Silver.
+              Billed once a year. Gold adds the models, the courses and the
+              insights on top of everything in Silver.
             </p>
           </div>
 
@@ -155,16 +154,12 @@ function PlanCard({
       <h3 className="font-display text-xl font-bold text-text">{entry.name}</h3>
       <div className="mt-3 flex items-baseline gap-1.5">
         <span className="mono text-[30px] font-bold text-text">
-          {firstYearLabel(entry.plan)}
+          {priceLabel(entry.plan)}
         </span>
-        <span className="text-[13px] text-muted">
-          {hasSetupFee(entry.plan)
-            ? `for your first ${entry.label}`
-            : `every ${entry.label}`}
-        </span>
+        <span className="text-[13px] text-muted">{`every ${entry.label}`}</span>
       </div>
       <p className="mt-1 text-xs text-muted">
-        {`€${renewalPerMonth(entry.plan)} / month on renewal`}
+        {`€${perMonth(entry.plan)} / month`}
       </p>
 
       <ul className="mt-4 space-y-1.5">
@@ -188,7 +183,7 @@ function PlanCard({
               product={fsProduct}
               userId={userId}
               email={email}
-              label={`Start — ${firstYearLabel(entry.plan)}`}
+              label={`Start — ${priceLabel(entry.plan)}`}
               className={btnClass}
             />
           ) : (
@@ -200,7 +195,7 @@ function PlanCard({
           <form action={formAction}>
             <input type="hidden" name="plan" value={entry.plan} />
             <button type="submit" disabled={pending} className={btnClass}>
-              {pending ? "Redirecting…" : `Start — ${firstYearLabel(entry.plan)}`}
+              {pending ? "Redirecting…" : `Start — ${priceLabel(entry.plan)}`}
             </button>
             {state.status === "error" && (
               <p className="mt-2 text-center text-xs text-neg">{state.message}</p>

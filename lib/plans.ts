@@ -3,50 +3,37 @@ import type { Plan } from "./types";
 // THE single source of truth for what a membership costs.
 //
 // These values must stay in lockstep with two other places:
-//   1. the Stripe dashboard (one yearly price per tier, plus Gold's
-//      one-off setup price)
+//   1. the Stripe dashboard (one yearly price per tier)
 //   2. wavehub-landing/index.html (the public pricing section)
 // Change a price here and you must change it in both.
 //
-// Pricing model: yearly only, two tiers.
+// Pricing model: yearly only, two tiers, both plain recurring subscriptions.
 //
-//   Silver   €399 today, €399 every year after
-//   Gold     €599 today, €399 every year after
+//   Silver   €399 / year
+//   Gold     €599 / year
 //
-// Gold is NOT a more expensive subscription — it is the same €399/year
-// plus a €200 one-off on the first invoice. That is deliberate and honest:
-// the models and the education library are delivered once, so they are paid
-// for once. Renewals cost the same as Silver because after the first year
-// both tiers are receiving the same thing.
-//
-// In Stripe this is a subscription checkout carrying a second, one-time line
-// item — it lands on the first invoice and never appears again. Each tier has
-// its own yearly price even though the amounts are identical, so that a
-// subscription still identifies which tier it came from.
+// Gold costs more every year, not once: the models, the courses and the
+// insights keep being produced, so they keep being paid for. There is no
+// setup fee and no discounted first period — one price, every year, for as
+// long as you stay.
 //
 // Prices are EUR because that is what the public site quotes, and the Stripe
 // prices must match exactly — same amount, same interval, same currency.
 export const PLANS: {
   plan: Plan;
   name: string;
-  /** Charged today. Includes the one-off where a tier has one. */
-  firstYearEur: number;
-  /** Charged on every renewal after that. */
-  renewalEur: number;
-  /** The one-off part of the first payment. 0 when the tier has none. */
-  setupEur: number;
+  /** Charged today and on every renewal. */
+  yearlyEur: number;
   /** Billing interval in months — must equal the Stripe price interval. */
   intervalMonths: number;
   label: string;
-  /** What the tier actually includes, in the order it should be listed. */
+  /** What the tier includes, in the order it should be listed. */
   features: string[];
 }[] = [
   {
     plan: "silver",
     name: "Silver",
-    firstYearEur: 399,
-    renewalEur: 399,
-    setupEur: 0,
+    yearlyEur: 399,
     intervalMonths: 12,
     label: "year",
     features: [
@@ -58,16 +45,14 @@ export const PLANS: {
   {
     plan: "gold",
     name: "Gold",
-    firstYearEur: 599,
-    renewalEur: 399,
-    setupEur: 200,
+    yearlyEur: 599,
     intervalMonths: 12,
     label: "year",
     features: [
       "Everything in Silver",
       "The models the calls are built on",
-      "The full education library",
-      "Paid once — renewals cost the same as Silver",
+      "The full course library",
+      "Insights as they're written",
     ],
   },
 ];
@@ -82,31 +67,19 @@ export function isPlan(value: unknown): value is Plan {
   return value === "silver" || value === "gold";
 }
 
-/** Does this tier carry a one-off charge on the first invoice? */
-export function hasSetupFee(plan: Plan): boolean {
-  return planDetails(plan).setupEur > 0;
+/** The price, formatted — e.g. "€399". */
+export function priceLabel(plan: Plan): string {
+  return `€${planDetails(plan).yearlyEur}`;
 }
 
-/** What you pay today, formatted — e.g. "€599". */
-export function firstYearLabel(plan: Plan): string {
-  return `€${planDetails(plan).firstYearEur}`;
-}
-
-/** What each renewal costs, formatted — e.g. "€399". */
-export function renewalLabel(plan: Plan): string {
-  return `€${planDetails(plan).renewalEur}`;
-}
-
-/** Real monthly cost once it renews. Derived, never stored. */
-export function renewalPerMonth(plan: Plan): number {
-  const { renewalEur, intervalMonths } = planDetails(plan);
-  return Math.round(renewalEur / intervalMonths);
+/** What it works out at per month. Derived, never stored. */
+export function perMonth(plan: Plan): number {
+  const { yearlyEur, intervalMonths } = planDetails(plan);
+  return Math.round(yearlyEur / intervalMonths);
 }
 
 /** The auto-renewal disclosure that must sit next to every buy button. */
 export function renewalNotice(plan: Plan): string {
-  const { label, setupEur } = planDetails(plan);
-  return setupEur > 0
-    ? `Includes a one-off €${setupEur}. Renews at ${renewalLabel(plan)} every ${label}. Cancel anytime.`
-    : `Renews at ${renewalLabel(plan)} every ${label}. Cancel anytime.`;
+  const { label } = planDetails(plan);
+  return `Renews at ${priceLabel(plan)} every ${label}. Cancel anytime.`;
 }

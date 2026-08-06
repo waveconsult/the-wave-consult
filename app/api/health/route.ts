@@ -26,9 +26,6 @@ async function stripeReport() {
   const out: Record<string, unknown> = {
     keyMode: key.startsWith("sk_live") ? "live" : key.startsWith("sk_test") ? "test" : "unknown",
   };
-  // Three ids, not two: Gold's one-off setup price is a separate Stripe object
-  // and a separate way for the checkout to break, so it gets checked too. It
-  // must be one-time — a recurring price here would bill the €200 every year.
   const prices: Record<string, unknown> = {};
   for (const [label, id] of Object.entries(configuredPrices())) {
     if (!id) {
@@ -50,7 +47,6 @@ function configuredPrices(): Record<string, string | null> {
   return {
     silver: clean(process.env.STRIPE_PRICE_SILVER),
     gold: clean(process.env.STRIPE_PRICE_GOLD),
-    goldSetup: clean(process.env.STRIPE_PRICE_GOLD_SETUP),
   };
 }
 

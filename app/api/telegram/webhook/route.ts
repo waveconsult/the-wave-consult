@@ -154,10 +154,7 @@ function planKeyboard() {
   return {
     inline_keyboard: PLANS.map((p) => [
       {
-        text:
-          p.setupEur > 0
-            ? `${p.name} — €${p.firstYearEur} first year, then €${p.renewalEur}`
-            : `${p.name} — €${p.renewalEur} / year`,
+        text: `${p.name} — €${p.yearlyEur} / year`,
         callback_data: `buy:${p.plan}`,
       },
     ]),
@@ -262,19 +259,14 @@ export async function POST(req: Request) {
           return NextResponse.json({ ok: true });
         }
         const d = planDetails(plan as never);
-        const terms =
-          d.setupEur > 0
-            ? `€${d.firstYearEur} today — that's €${d.renewalEur} for the year plus a one-off €${d.setupEur}.\n` +
-              `Renews at €${d.renewalEur} a year, same as Silver. Cancel anytime.`
-            : `€${d.renewalEur} a year. Cancel anytime.`;
         await sendMessage(
           from.id,
-          `<b>${d.name}</b>\n${terms}\n\n` +
+          `<b>${d.name}</b>\n€${d.yearlyEur} a year. Cancel anytime.\n\n` +
             d.features.map((f) => `• ${f}`).join("\n") +
             `\n\nComplete the payment and I'll send your invite link straight back here.`,
           {
             reply_markup: {
-              inline_keyboard: [[{ text: `Pay €${d.firstYearEur} →`, url }]],
+              inline_keyboard: [[{ text: `Pay €${d.yearlyEur} →`, url }]],
             },
           },
         );

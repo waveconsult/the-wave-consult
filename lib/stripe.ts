@@ -19,11 +19,9 @@ export function getStripe(): Stripe {
 }
 
 // The recurring price of a tier. Create one yearly price per tier in the
-// Stripe dashboard — €399/year for both (see lib/plans.ts) — and paste the ids
-// in via env. Two separate prices despite the identical amount: a subscription
-// must still say which tier it came from, and one shared price would make
-// Silver and Gold indistinguishable the moment the first invoice is paid.
-// The interval on each price must match PLANS[].intervalMonths.
+// Stripe dashboard — €399 for Silver, €599 for Gold (see lib/plans.ts) — and
+// paste the ids in via env. The interval on each price must match
+// PLANS[].intervalMonths, or a "yearly" plan will bill on some other rhythm.
 export function priceForPlan(plan: Plan): string {
   const id =
     plan === "silver" ? process.env.STRIPE_PRICE_SILVER : process.env.STRIPE_PRICE_GOLD;
@@ -35,20 +33,13 @@ export function priceForPlan(plan: Plan): string {
   return id;
 }
 
-// Gold's one-off, charged on the first invoice only. A ONE-TIME Stripe
-// price, not recurring — Stripe puts it on the first invoice of a subscription
-// checkout and never bills it again. Null for tiers without one.
-export function setupPriceForPlan(plan: Plan): string | null {
-  if (plan !== "gold") return null;
-  return process.env.STRIPE_PRICE_GOLD_SETUP?.trim() || null;
-}
-
-/** Both line items for a checkout, in the order they should appear. */
+/**
+ * What a checkout for this plan is made of. One recurring item today — the
+ * seam exists so that composing a checkout stays in one place rather than
+ * being spelled out at each of the three call sites.
+ */
 export function lineItemsForPlan(plan: Plan): { price: string; quantity: number }[] {
-  const items = [{ price: priceForPlan(plan), quantity: 1 }];
-  const setup = setupPriceForPlan(plan);
-  if (setup) items.push({ price: setup, quantity: 1 });
-  return items;
+  return [{ price: priceForPlan(plan), quantity: 1 }];
 }
 
 // Reverse of priceForPlan — used by the webhook as a fallback when a
