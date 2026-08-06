@@ -85,7 +85,7 @@ async function sendAccessEmail(to: string, link: string, plan: Plan | null) {
       from: process.env.RESEND_FROM ?? "WaveHub <onboarding@resend.dev>",
       to,
       subject: "Your WaveHub access — one step left",
-      html: accessEmail(link, plan ? planDetails(plan).name : null),
+      html: accessEmail(link, plan ? planDetails(plan).name : null, to),
     });
   } catch {
     // The thank-you page still shows the same link.
@@ -157,6 +157,21 @@ export async function POST(req: Request) {
           .eq("id", profileId);
       }
 
+      // Record the purchase against the email, always — not only when the buyer
+      // came from the website. It is what a later signup claims to turn a
+      // free account into a paid one, and someone who bought in the bot may
+      // still want the website afterwards.
+      const purchaseCode = email
+        ? await mintLinkCode({
+            sessionId: session.id,
+            customerId,
+            subscriptionId: subId,
+            email,
+            plan,
+            currentPeriodEnd: sub ? periodEndIso(sub) : null,
+          })
+        : null;
+
       // ── Telegram: bought through the bot (or a link carrying the tg id) ──
       const tgId = telegramIdFrom(session.client_reference_id, meta);
       if (tgId) {
@@ -183,20 +198,12 @@ export async function POST(req: Request) {
             ? `Payment received — you're a member. 🎾\n\nTap to join the group:\n${invite}\n\nYou'll be let in within a second or two. The link expires in 48 hours.`
             : `Payment received — you're a member. 🎾\n\nI could not generate your invite link automatically. Reply here and we'll sort it out.`,
         );
-      } else if (email) {
+      } else if (email && purchaseCode) {
         // Bought on the website, so nothing here knows their Telegram account.
         // The thank-you page hands them a deep link, but only while that tab is
         // open — close it and the payment has no way back to a person. So the
         // same code goes out by email, which they keep.
-        const code = await mintLinkCode({
-          sessionId: session.id,
-          customerId,
-          subscriptionId: subId,
-          email,
-          plan,
-          currentPeriodEnd: sub ? periodEndIso(sub) : null,
-        });
-        const link = code ? botDeepLink(code) : null;
+        const link = botDeepLink(purchaseCode);
         if (link) await sendAccessEmail(email, link, plan);
       }
     }

@@ -3,6 +3,7 @@
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import { claimMembership } from "@/lib/entitlements";
 
 export type AuthState = { error: string } | null;
 
@@ -20,8 +21,13 @@ export async function login(
   if (!email || !password) return { error: "Email and password are required." };
 
   const supabase = await createClient();
-  const { error } = await supabase.auth.signInWithPassword({ email, password });
+  const { data, error } = await supabase.auth.signInWithPassword({ email, password });
   if (error) return { error: error.message };
+
+  // Someone can buy on the website today and only create an account next week.
+  // The webhook had no profile to mark back then, so the purchase is claimed
+  // here instead — every sign-in, because it is cheap and self-healing.
+  if (data.user) await claimMembership(data.user.id, email);
 
   revalidatePath("/", "layout");
   redirect("/bets");
@@ -47,7 +53,9 @@ export async function signup(
   if (error) return { error: error.message };
 
   // The profile row is auto-created by the on_auth_user_created trigger.
-  // Membership is granted only by the payment webhook, never here.
+  // Membership is never granted from the form — only ever from a payment that
+  // Stripe already confirmed, matched here by email.
+  if (data.user) await claimMembership(data.user.id, email);
 
   revalidatePath("/", "layout");
   redirect("/bets");

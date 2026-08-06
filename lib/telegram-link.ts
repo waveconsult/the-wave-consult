@@ -72,22 +72,46 @@ export function botDeepLink(code: string): string | null {
   return bot ? `https://t.me/${bot}?start=${code}` : null;
 }
 
-/** The "you paid, here's your way in" email. Plain, one action. */
-export function accessEmail(link: string, planName: string | null): string {
+/**
+ * The "you paid, here's your way in" email. Two doors, in the order they
+ * matter: Telegram is where the calls go out, the website account is where the
+ * archive and the tools live. The account is created with THIS email address —
+ * that is what links it back to the payment, so it is stated explicitly rather
+ * than left to be guessed.
+ */
+export function accessEmail(link: string, planName: string | null, email: string): string {
+  const site = process.env.NEXT_PUBLIC_SITE_URL ?? "https://app.wavehubtennis.com";
   return `<!doctype html><html><body style="margin:0;background:#f6f6f5;font-family:Inter,-apple-system,Segoe UI,Helvetica,Arial,sans-serif">
   <div style="max-width:520px;margin:0 auto;padding:40px 24px">
     <p style="margin:0 0 6px;font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:#6b6b70">WaveHub</p>
     <h1 style="margin:0 0 16px;font-size:26px;line-height:1.2;color:#111">Your membership is active.</h1>
-    <p style="margin:0 0 22px;font-size:15px;line-height:1.6;color:#3f3f45">
+    <p style="margin:0 0 26px;font-size:15px;line-height:1.6;color:#3f3f45">
       ${planName ? `Thanks for joining — ${planName}. ` : "Thanks for joining. "}
-      One step left: open the WaveHub bot on Telegram. It links this payment to
-      your Telegram account and sends your invite to the members group.
+      Two things to set up, and both take under a minute.
+    </p>
+
+    <p style="margin:0 0 8px;font-size:15px;font-weight:600;color:#111">1 &middot; The members group</p>
+    <p style="margin:0 0 14px;font-size:15px;line-height:1.6;color:#3f3f45">
+      Open the WaveHub bot. It links this payment to your Telegram account and
+      sends your invite straight away.
     </p>
     <a href="${link}" style="display:inline-block;background:#0075de;color:#fff;text-decoration:none;font-size:16px;font-weight:500;padding:13px 22px;border-radius:8px">Open the Telegram bot →</a>
-    <p style="margin:22px 0 0;font-size:13px;line-height:1.6;color:#6b6b70">
+    <p style="margin:10px 0 30px;font-size:13px;line-height:1.6;color:#6b6b70">
       Open it on the Telegram account you want inside the group. This link works once.<br>
       If the button does nothing, paste this into your browser:<br>
       <span style="color:#3f3f45;word-break:break-all">${link}</span>
+    </p>
+
+    <p style="margin:0 0 8px;font-size:15px;font-weight:600;color:#111">2 &middot; Your website account</p>
+    <p style="margin:0 0 14px;font-size:15px;line-height:1.6;color:#3f3f45">
+      Create it with <b>${email}</b> — the same address you paid with. That is
+      how your membership is recognised. Any other address will come out as a
+      free account.
+    </p>
+    <a href="${site}/signup?welcome=1" style="display:inline-block;background:#fff;color:#0075de;text-decoration:none;font-size:16px;font-weight:500;padding:13px 22px;border-radius:8px;border:1px solid rgba(0,0,0,.12)">Create your account →</a>
+
+    <p style="margin:30px 0 0;font-size:13px;line-height:1.6;color:#6b6b70">
+      Already have an account on that address? Just log in — it upgrades itself.
     </p>
   </div>
 </body></html>`;

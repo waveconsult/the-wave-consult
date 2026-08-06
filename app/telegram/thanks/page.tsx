@@ -92,6 +92,19 @@ export default async function TelegramThanksPage({
       <p className="mt-6 max-w-xs text-xs text-faint">
         Open it on the account you want inside the group. This link works once.
       </p>
+
+      {/* The second door. Easy to miss on this screen, which is why the same
+          two steps also go out by email — this page is a tab someone closes. */}
+      <div className="mt-10 w-full max-w-sm border-t border-border pt-8">
+        <p className="text-[13px] text-muted">
+          Want the archive and the tools on the web too? Create your account with
+          the same email you just paid with — that is what recognises your
+          membership.
+        </p>
+        <a className="btn-pill-ghost mt-4 inline-flex" href="/signup?welcome=1">
+          Create your account →
+        </a>
+      </div>
     </div>
   );
 }
