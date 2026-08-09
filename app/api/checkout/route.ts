@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getStripe, lineItemsForPlan } from "@/lib/stripe";
 import { isPlan } from "@/lib/plans";
+import { withdrawalConsent } from "@/lib/consent";
 
 // Buy button target for the static marketing site.
 //
@@ -35,6 +36,7 @@ export async function GET(req: Request) {
       metadata: { plan, source: "landing", ...(tg ? { telegram_id: tg } : {}) },
       subscription_data: { metadata: { plan, ...(tg ? { telegram_id: tg } : {}) } },
       allow_promotion_codes: true,
+      ...withdrawalConsent(),
       // /telegram/welcome provisions the account and signs them in, then
       // forwards to the thank-you page — so paying and having an account are
       // one event rather than two.

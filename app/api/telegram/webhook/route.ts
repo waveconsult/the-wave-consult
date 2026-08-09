@@ -11,6 +11,7 @@ import {
   freeGroupId,
 } from "@/lib/telegram";
 import { grantsAccess } from "@/lib/subscription";
+import { withdrawalConsent } from "@/lib/consent";
 import { issueCode, verifyCode, hasPendingCode } from "@/lib/email-codes";
 
 // The bot. Telegram POSTs every update here.
@@ -335,6 +336,7 @@ async function checkoutUrl(plan: string, telegramId: number): Promise<string | n
       metadata: { telegram_id: String(telegramId), plan, source: "telegram_bot" },
       subscription_data: { metadata: { telegram_id: String(telegramId), plan } },
       allow_promotion_codes: true,
+      ...withdrawalConsent(),
       success_url: `${SITE}/telegram/welcome?s={CHECKOUT_SESSION_ID}`,
       cancel_url: `${SITE}/telegram/cancelled`,
     });

@@ -6,7 +6,10 @@ import { createAdminClient } from "./supabase/admin";
 
 const PUBLIC = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
 const PRIVATE = process.env.VAPID_PRIVATE_KEY;
-const SUBJECT = process.env.VAPID_SUBJECT || "mailto:markus.prenner@gmx.at";
+// VAPID requires a contact the push service can reach if something goes wrong.
+// It goes out to Google/Mozilla with every push, so it is a business address,
+// not a personal one.
+const SUBJECT = process.env.VAPID_SUBJECT || "mailto:support@wavehubtennis.com";
 
 let configured = false;
 function ensureConfigured(): boolean {
