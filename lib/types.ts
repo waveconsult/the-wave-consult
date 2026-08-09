@@ -26,6 +26,13 @@ export interface Profile {
   max_stake_pct: number;
   unit_size: number;
   created_at: string;
+  // Written by the payment webhooks (migration 20260712_subscriptions).
+  // requireProfile selects *, so these were always present at runtime and only
+  // missing from the type.
+  stripe_customer_id: string | null;
+  stripe_subscription_id: string | null;
+  subscription_status: string | null;
+  current_period_end: string | null;
 }
 
 export interface Tournament {

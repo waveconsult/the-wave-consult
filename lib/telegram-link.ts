@@ -66,6 +66,50 @@ export async function mintLinkCode(input: LinkCodeInput): Promise<string | null>
   }
 }
 
+/**
+ * A brand-new code for a subscription, for the "send me the link again" button
+ * in the member area.
+ *
+ * Deliberately not idempotent, unlike mintLinkCode: the usual reason someone
+ * asks is that the previous code was burned by the wrong Telegram account or
+ * lost, and handing back the same dead code would be the exact opposite of
+ * help. The synthetic session id keeps the unique index satisfied without
+ * pretending a checkout happened.
+ */
+export async function mintFreshLinkCode(input: {
+  subscriptionId: string;
+  customerId?: string | null;
+  email?: string | null;
+  plan?: string | null;
+  currentPeriodEnd?: string | null;
+}): Promise<string | null> {
+  try {
+    const admin = createAdminClient();
+
+    // Retire anything still outstanding for this subscription so only the code
+    // in the member's hand right now can be redeemed.
+    await admin
+      .from("telegram_link_codes")
+      .update({ used_at: new Date().toISOString() })
+      .eq("stripe_subscription_id", input.subscriptionId)
+      .is("used_at", null);
+
+    const code = randomUUID().replace(/-/g, "");
+    const { error } = await admin.from("telegram_link_codes").insert({
+      code,
+      stripe_session_id: `sub_${input.subscriptionId}_${Date.now()}`,
+      stripe_customer_id: input.customerId ?? null,
+      stripe_subscription_id: input.subscriptionId,
+      email: input.email?.toLowerCase() ?? null,
+      plan: input.plan ?? null,
+      current_period_end: input.currentPeriodEnd ?? null,
+    });
+    return error ? null : code;
+  } catch {
+    return null;
+  }
+}
+
 /** t.me link that carries the code as the bot's /start payload. */
 export function botDeepLink(code: string): string | null {
   const bot = (process.env.NEXT_PUBLIC_TELEGRAM_BOT_USERNAME ?? "").replace(/^@/, "");

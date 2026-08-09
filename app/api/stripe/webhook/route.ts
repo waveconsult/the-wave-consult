@@ -7,6 +7,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { createInvite, removeMember, sendMessage } from "@/lib/telegram";
 import { mintLinkCode, botDeepLink, accessEmail } from "@/lib/telegram-link";
 import { planDetails } from "@/lib/plans";
+import { grantsAccess } from "@/lib/subscription";
 
 /** "tg_12345" (client_reference_id) or metadata.telegram_id -> 12345 */
 function telegramIdFrom(
@@ -27,7 +28,8 @@ export const dynamic = "force-dynamic";
 
 type Admin = ReturnType<typeof createAdminClient>;
 
-const ACTIVE = new Set(["active", "trialing"]);
+// "Active" is defined once, in lib/subscription, because the bot asks the same
+// question and the two answers used to differ — see the note in that file.
 
 function planFromMeta(meta: Stripe.Metadata | undefined | null): Plan | null {
   const p = meta?.plan;
@@ -224,7 +226,9 @@ export async function POST(req: Request) {
 
       if (profileId) {
         const canceled = event.type === "customer.subscription.deleted";
-        const active = !canceled && ACTIVE.has(sub.status);
+        // Same rule the bot applies, so a bounced card cannot leave someone
+        // with the group but without the courses.
+        const active = !canceled && grantsAccess(sub.status, periodEndIso(sub));
         await admin
           .from("profiles")
           .update({
@@ -241,7 +245,7 @@ export async function POST(req: Request) {
 
       // ── Telegram: mirror the subscription state onto group access ────────
       const canceled = event.type === "customer.subscription.deleted";
-      const active = !canceled && ACTIVE.has(sub.status);
+      const active = !canceled && grantsAccess(sub.status, periodEndIso(sub));
       const { data: tgRow } = await admin
         .from("telegram_members")
         .select("telegram_id, in_group")

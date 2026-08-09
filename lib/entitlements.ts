@@ -1,5 +1,7 @@
 import { createAdminClient } from "@/lib/supabase/admin";
 import { isPlan } from "@/lib/plans";
+import { getStripe } from "@/lib/stripe";
+import { grantsAccess } from "@/lib/subscription";
 
 // Buying and having an account are two separate events, in either order.
 //
@@ -40,10 +42,22 @@ export async function claimMembership(userId: string, email: string): Promise<bo
 
     if (!purchase?.stripe_subscription_id) return false;
 
-    // Expired subscriptions are recorded too — claiming one would hand out
-    // access that has already run out.
-    const end = purchase.current_period_end ? new Date(purchase.current_period_end) : null;
-    if (end && end < new Date()) return false;
+    // The purchase row's current_period_end is written once, at checkout, and
+    // nothing updates it on renewal. Trusting it meant a member who bought a
+    // year ago, renewed, and only then created a website account was measured
+    // against a date twelve months stale and quietly handed a free account.
+    // So the row tells us WHICH subscription to look at; Stripe tells us
+    // whether it is live.
+    const live = await liveSubscription(purchase.stripe_subscription_id);
+    const status = live?.status ?? null;
+    const periodEnd = live?.periodEnd ?? purchase.current_period_end ?? null;
+
+    // If Stripe could not be reached, fall back to the recorded period rather
+    // than locking out a paying member over an API blip.
+    const allowed = live
+      ? grantsAccess(status, periodEnd)
+      : grantsAccess("active", purchase.current_period_end);
+    if (!allowed) return false;
 
     await admin
       .from("profiles")
@@ -52,13 +66,34 @@ export async function claimMembership(userId: string, email: string): Promise<bo
         plan: isPlan(purchase.plan) ? purchase.plan : undefined,
         stripe_customer_id: purchase.stripe_customer_id,
         stripe_subscription_id: purchase.stripe_subscription_id,
-        subscription_status: "active",
-        current_period_end: purchase.current_period_end,
+        subscription_status: status ?? "active",
+        current_period_end: periodEnd,
       })
       .eq("id", userId);
 
     return true;
   } catch {
     return false;
+  }
+}
+
+/** Current status straight from Stripe. Null when it cannot be reached. */
+async function liveSubscription(
+  subscriptionId: string,
+): Promise<{ status: string; periodEnd: string | null } | null> {
+  try {
+    const sub = await getStripe().subscriptions.retrieve(subscriptionId);
+    const raw = sub as unknown as {
+      status: string;
+      current_period_end?: number;
+      items?: { data?: Array<{ current_period_end?: number }> };
+    };
+    const seconds = raw.current_period_end ?? raw.items?.data?.[0]?.current_period_end;
+    return {
+      status: raw.status,
+      periodEnd: seconds ? new Date(seconds * 1000).toISOString() : null,
+    };
+  } catch {
+    return null;
   }
 }

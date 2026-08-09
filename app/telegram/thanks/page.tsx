@@ -2,28 +2,34 @@ import type { Metadata } from "next";
 import { getStripe, planForPrice } from "@/lib/stripe";
 import { isPlan } from "@/lib/plans";
 import { mintLinkCode } from "@/lib/telegram-link";
+import { createClient } from "@/lib/supabase/server";
+import { EmailCheck } from "./EmailCheck";
 
 export const metadata: Metadata = { title: "You're in" };
 export const dynamic = "force-dynamic";
 
-// Where Stripe drops people after they buy on the marketing site.
+// Where a buyer lands, after /telegram/welcome has already created their
+// account and signed them in.
 //
-// The payment exists, but nothing knows their Telegram account yet — Stripe
-// only saw an email and a card. So this page mints a one-time code tied to the
-// subscription and hands it over as a deep link. Whichever Telegram account
-// opens that link gets attached to the subscription by the bot.
+// That leaves exactly one thing to do, and it is the one thing only they can
+// decide: which Telegram account should sit in the members group. Stripe saw
+// an email and a card, nothing that identifies a person on Telegram, so the
+// bot is handed a one-time code and whoever opens it gets attached.
 //
-// It reads the session from Stripe directly rather than waiting for the
-// webhook, so it works even if the buyer lands here first.
+// The code is minted here as well as in the webhook. They race, and
+// mintLinkCode is idempotent per session precisely so the race is harmless —
+// two codes for one payment would mean the emailed one stops working the
+// moment this page's is redeemed.
 
-/** Session id -> a short code the bot can redeem. Idempotent per session. */
-async function linkCodeFor(sessionId: string): Promise<string | null> {
+type Purchase = { code: string | null; email: string | null };
+
+async function purchaseFor(sessionId: string): Promise<Purchase> {
   try {
     const stripe = getStripe();
     const session = await stripe.checkout.sessions.retrieve(sessionId, {
       expand: ["subscription"],
     });
-    if (session.payment_status === "unpaid") return null;
+    if (session.payment_status === "unpaid") return { code: null, email: null };
 
     const sub =
       typeof session.subscription === "object" && session.subscription
@@ -36,22 +42,22 @@ async function linkCodeFor(sessionId: string): Promise<string | null> {
     } | null;
     const secs = s?.current_period_end ?? s?.items?.data?.[0]?.current_period_end;
     const metaPlan = session.metadata?.plan ?? s?.metadata?.plan;
-    const plan = isPlan(metaPlan)
-      ? metaPlan
-      : planForPrice(s?.items?.data?.[0]?.price?.id);
+    const plan = isPlan(metaPlan) ? metaPlan : planForPrice(s?.items?.data?.[0]?.price?.id);
+    const email = session.customer_details?.email?.trim().toLowerCase() ?? null;
 
-    return await mintLinkCode({
+    const code = await mintLinkCode({
       sessionId,
       customerId:
         typeof session.customer === "string" ? session.customer : (session.customer?.id ?? null),
       subscriptionId: sub?.id ?? null,
-      email: session.customer_details?.email ?? null,
+      email,
       plan,
-      currentPeriodEnd:
-        typeof secs === "number" ? new Date(secs * 1000).toISOString() : null,
+      currentPeriodEnd: typeof secs === "number" ? new Date(secs * 1000).toISOString() : null,
     });
+
+    return { code, email };
   } catch {
-    return null;
+    return { code: null, email: null };
   }
 }
 
@@ -62,12 +68,26 @@ export default async function TelegramThanksPage({
 }) {
   const bot = (process.env.NEXT_PUBLIC_TELEGRAM_BOT_USERNAME ?? "").replace(/^@/, "");
   const sessionId = (await searchParams).s;
-  const code = bot && sessionId ? await linkCodeFor(sessionId) : null;
+  const { code, email } = sessionId
+    ? await purchaseFor(sessionId)
+    : { code: null, email: null };
+
+  // This is the page every buyer lands on, so nothing here is allowed to throw.
+  // Whether they are signed in only changes which sentence is shown; it must
+  // never be the reason someone sees an error screen after paying.
+  let signedIn = false;
+  try {
+    const supabase = await createClient();
+    const { data: auth } = await supabase.auth.getUser();
+    signedIn = Boolean(auth?.user);
+  } catch {
+    signedIn = false;
+  }
 
   const link = bot ? `https://t.me/${bot}${code ? `?start=${code}` : ""}` : null;
 
   return (
-    <div className="public-shell flex min-h-dvh flex-col items-center justify-center px-6 text-center">
+    <div className="public-shell flex min-h-dvh flex-col items-center justify-center px-6 py-16 text-center">
       <p className="eyebrow">Payment received</p>
       <h1 className="mt-3 font-display text-3xl font-bold text-text">
         One step left.
@@ -93,17 +113,40 @@ export default async function TelegramThanksPage({
         Open it on the account you want inside the group. This link works once.
       </p>
 
-      {/* The second door. Easy to miss on this screen, which is why the same
-          two steps also go out by email — this page is a tab someone closes. */}
+      {sessionId && email ? (
+        <EmailCheck sessionId={sessionId} email={email} />
+      ) : null}
+
+      {/* The website account. It already exists by the time anyone reads this —
+          /telegram/welcome created it from the address Stripe verified — so this
+          is a statement of fact, not a second task. */}
       <div className="mt-10 w-full max-w-sm border-t border-border pt-8">
-        <p className="text-[13px] text-muted">
-          Want the archive and the tools on the web too? Create your account with
-          the same email you just paid with — that is what recognises your
-          membership.
-        </p>
-        <a className="btn-pill-ghost mt-4 inline-flex" href="/signup?welcome=1">
-          Create your account →
-        </a>
+        {signedIn ? (
+          <>
+            <p className="text-[13px] leading-relaxed text-muted">
+              Your website account is ready and you are already signed in. The
+              courses, the archive and the tools are open.
+            </p>
+            <a className="btn-pill-ghost mt-4 inline-flex" href="/bets">
+              Go to the members area →
+            </a>
+          </>
+        ) : (
+          <>
+            <p className="text-[13px] leading-relaxed text-muted">
+              Want the archive and the tools on the web too? Log in with{" "}
+              {email ? (
+                <span className="text-text">{email}</span>
+              ) : (
+                "the address you paid with"
+              )}{" "}
+              — we email you a code, no password needed.
+            </p>
+            <a className="btn-pill-ghost mt-4 inline-flex" href="/login">
+              Log in →
+            </a>
+          </>
+        )}
       </div>
     </div>
   );

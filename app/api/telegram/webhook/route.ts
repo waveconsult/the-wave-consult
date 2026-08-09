@@ -10,6 +10,8 @@ import {
   createInvite,
   freeGroupId,
 } from "@/lib/telegram";
+import { grantsAccess } from "@/lib/subscription";
+import { issueCode, verifyCode, hasPendingCode } from "@/lib/email-codes";
 
 // The bot. Telegram POSTs every update here.
 //
@@ -51,9 +53,8 @@ async function isActive(telegramId: number): Promise<boolean> {
       .eq("telegram_id", telegramId)
       .maybeSingle();
     if (!data) return false;
-    if (data.status !== "active" && data.status !== "past_due") return false;
-    if (data.current_period_end && new Date(data.current_period_end) < new Date()) return false;
-    return true;
+    // Shared with the website — see lib/subscription for why these must agree.
+    return grantsAccess(data.status, data.current_period_end);
   } catch {
     return false;
   }
@@ -96,6 +97,167 @@ async function redeemLinkCode(code: string, user: TgUser): Promise<boolean> {
     .update({ used_at: now, used_by: user.id })
     .eq("code", code);
   return true;
+}
+
+// ── "I already paid" ──────────────────────────────────────────────────────
+//
+// Someone who loses their link — tab closed, mail in spam, address typo'd at
+// checkout — used to arrive here, tap /start, and be shown the price list
+// again. That is the worst moment in the whole product: they have paid and the
+// bot is selling to them.
+//
+// So they can name the address they paid with instead. It cannot be taken at
+// face value, though: an email address is not a secret, and anyone who knows a
+// member's would otherwise be able to move that membership onto their own
+// Telegram account. A code goes to the mailbox and has to come back.
+//
+// No conversation state is stored anywhere. A message shaped like an email is
+// read as a claim; six digits, while a code is outstanding, are read as the
+// answer. That survives a restart, a slow reply, and someone wandering off
+// mid-flow.
+
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
+
+/** Ask for the payment email rather than pitching to someone who already paid. */
+async function offerRecovery(chatId: number | string) {
+  await sendMessage(
+    chatId,
+    `<b>Already paid?</b>\n\n` +
+      `Send me the email address you paid with and I'll send a 6-digit code to it. ` +
+      `Type the code back here and you're in.\n\n` +
+      `Not a member yet? Tap /start again and pick a plan.`,
+  );
+}
+
+/** Step one: they named an address. Look for a purchase under it. */
+async function handleClaimedEmail(user: TgUser, email: string) {
+  const address = email.trim().toLowerCase();
+  const admin = createAdminClient();
+
+  const { data: purchase } = await admin
+    .from("telegram_link_codes")
+    .select("stripe_subscription_id, current_period_end, used_by")
+    .eq("email", address)
+    .not("stripe_subscription_id", "is", null)
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  // Deliberately the same reply whether or not a purchase exists. Answering
+  // "no membership on that address" would turn the bot into a tool for testing
+  // which addresses are customers.
+  if (!purchase?.stripe_subscription_id) {
+    await sendMessage(
+      user.id,
+      `If a membership exists for <b>${escapeHtml(address)}</b>, a 6-digit code is on its way. ` +
+        `Type it here.\n\nNothing arrived after a few minutes? Check spam, or reply here and we'll sort it out.`,
+    );
+    return;
+  }
+
+  const sent = await issueCode(address, "telegram_link", user.id);
+  if (!sent.ok) {
+    await sendMessage(
+      user.id,
+      sent.reason === "rate_limited"
+        ? "That's a few codes in a short time. Wait an hour and try again, or reply here and we'll sort it out."
+        : "I couldn't send the code just now. Reply here and we'll sort it out.",
+    );
+    return;
+  }
+
+  await sendMessage(
+    user.id,
+    `Code sent to <b>${escapeHtml(address)}</b>. Type the 6 digits here — it expires in 15 minutes.`,
+  );
+}
+
+/** Step two: they typed the code. Verify possession, then link. */
+async function handleTypedCode(user: TgUser, code: string) {
+  const result = await verifyCode(code, "telegram_link", { telegramId: user.id });
+
+  if (!result.ok) {
+    const say: Record<typeof result.reason, string> = {
+      no_request: "I'm not waiting on a code from you. Send the email address you paid with first.",
+      expired: "That code has expired. Send your email address again and I'll issue a new one.",
+      too_many_attempts: "Too many wrong tries. Send your email address again for a fresh code.",
+      wrong_code: "That code doesn't match. Check the email and try again.",
+    };
+    await sendMessage(user.id, say[result.reason]);
+    return;
+  }
+
+  const admin = createAdminClient();
+  const { data: purchase } = await admin
+    .from("telegram_link_codes")
+    .select("stripe_customer_id, stripe_subscription_id, plan, current_period_end, email")
+    .eq("email", result.email)
+    .not("stripe_subscription_id", "is", null)
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (!purchase?.stripe_subscription_id) {
+    await sendMessage(
+      user.id,
+      "That address checks out, but I can't find a membership on it. Reply here and we'll sort it out.",
+    );
+    return;
+  }
+
+  if (!grantsAccess("active", purchase.current_period_end)) {
+    await sendMessage(
+      user.id,
+      "That membership has run out. Tap /start to pick it back up.",
+    );
+    return;
+  }
+
+  // One Telegram account per subscription. If the membership already sits on a
+  // different account, say so plainly rather than silently moving it — the
+  // usual cause is a shared link, and the usual fix is a human.
+  const { data: existing } = await admin
+    .from("telegram_members")
+    .select("telegram_id")
+    .eq("stripe_subscription_id", purchase.stripe_subscription_id)
+    .maybeSingle();
+
+  if (existing?.telegram_id && Number(existing.telegram_id) !== user.id) {
+    await sendMessage(
+      user.id,
+      "That membership is already connected to a different Telegram account. " +
+        "Reply here and we'll move it across.",
+    );
+    return;
+  }
+
+  await admin.from("telegram_members").upsert(
+    {
+      telegram_id: user.id,
+      username: user.username ?? null,
+      first_name: user.first_name ?? null,
+      email: purchase.email,
+      stripe_customer_id: purchase.stripe_customer_id,
+      stripe_subscription_id: purchase.stripe_subscription_id,
+      plan: purchase.plan ?? undefined,
+      status: "active",
+      current_period_end: purchase.current_period_end,
+      updated_at: new Date().toISOString(),
+    },
+    { onConflict: "telegram_id" },
+  );
+
+  const invite = await createInvite();
+  await sendMessage(
+    user.id,
+    invite
+      ? `Verified — your membership is on this account now. 🎾\n\nTap to join the group:\n${invite}`
+      : "Verified — your membership is on this account now. I couldn't generate an invite link just yet; reply here and we'll sort it out.",
+  );
+}
+
+function escapeHtml(s: string): string {
+  return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 }
 
 /** Mark someone as inside the free group and say hello. */
@@ -173,7 +335,7 @@ async function checkoutUrl(plan: string, telegramId: number): Promise<string | n
       metadata: { telegram_id: String(telegramId), plan, source: "telegram_bot" },
       subscription_data: { metadata: { telegram_id: String(telegramId), plan } },
       allow_promotion_codes: true,
-      success_url: `${SITE}/telegram/thanks`,
+      success_url: `${SITE}/telegram/welcome?s={CHECKOUT_SESSION_ID}`,
       cancel_url: `${SITE}/telegram/cancelled`,
     });
     return session.url;
@@ -229,7 +391,8 @@ export async function POST(req: Request) {
         // and someone knocking on the paid door is exactly who should hear it.
         await sendMessage(
           dm,
-          "That group is for members only.\n\nTap /start to see the plans — access is instant once you're set up.",
+          "That group is for members only.\n\nTap /start to see the plans — access is instant once you're set up.\n\n" +
+            "Already paid? Send me the email address you used and I'll get you in.",
         );
         await declineJoin(from.id);
       }
@@ -323,9 +486,23 @@ export async function POST(req: Request) {
               `Pick a membership below:`,
             { reply_markup: planKeyboard() },
           );
+          // A plan list is the wrong answer for someone who has already paid,
+          // so the way back in is offered in the same breath.
+          await offerRecovery(from.id);
         }
+      } else if (text === "/recover" || text === "/help") {
+        await offerRecovery(from.id);
+      } else if (EMAIL_RE.test(text)) {
+        await handleClaimedEmail(from, text);
+      } else if (/^\d[\d\s-]{4,}$/.test(text) && (await hasPendingCode(from.id))) {
+        await handleTypedCode(from, text);
+      } else if (await isActive(from.id)) {
+        await sendMessage(from.id, "Tap /start for your group link.");
       } else {
-        await sendMessage(from.id, "Tap /start to see the membership options.");
+        await sendMessage(
+          from.id,
+          "Tap /start to see the membership options — or send the email address you paid with if you are already a member.",
+        );
       }
     }
   } catch {

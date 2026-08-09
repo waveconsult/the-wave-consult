@@ -1,8 +1,9 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
 import Link from "next/link";
 import { login, signup, type AuthState } from "./actions";
+import { CodeSignIn } from "./CodeSignIn";
 
 const field =
   "w-full rounded-xl border border-white/15 bg-[#111110] px-4 py-3.5 text-[16px] text-[#ededee] placeholder:text-[#605f58] outline-none transition focus:border-[#cdd2d8]";
@@ -21,6 +22,13 @@ export function AuthForm({
     action,
     null,
   );
+  // Code sign-in is the default on login: most members never set a password,
+  // because their account was created for them from the address they paid with.
+  const [usePassword, setUsePassword] = useState(mode === "signup");
+
+  if (mode === "login" && !usePassword) {
+    return <CodeSignIn onUsePassword={() => setUsePassword(true)} />;
+  }
 
   return (
     <form action={formAction} className="space-y-5">
@@ -74,6 +82,18 @@ export function AuthForm({
             ? "Log in"
             : "Create account"}
       </button>
+
+      {mode === "login" ? (
+        <p className="text-center text-[13px] text-[#94928a]">
+          <button
+            type="button"
+            onClick={() => setUsePassword(false)}
+            className="-my-2.5 inline-block border-b border-[#cdd2d8]/50 py-2.5 font-semibold text-[#ededee] transition hover:border-[#cdd2d8]"
+          >
+            Email me a code instead
+          </button>
+        </p>
+      ) : null}
 
       <p className="pt-1 text-center text-[13px] text-[#94928a]">
         {mode === "login" ? (

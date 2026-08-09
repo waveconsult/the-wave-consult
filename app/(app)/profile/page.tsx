@@ -9,6 +9,8 @@ import { DeleteAccountForm } from "./DeleteAccountForm";
 import { NotificationToggle } from "@/components/NotificationToggle";
 import { signout } from "@/app/(auth)/actions";
 import { manageSubscription } from "../plans/actions";
+import { TelegramPanel } from "./TelegramPanel";
+import { connectedTelegramAccount } from "@/lib/telegram-account";
 
 export const metadata: Metadata = { title: "Profile" };
 
@@ -59,6 +61,16 @@ export default async function ProfilePage() {
           </form>
         )}
       </div>
+
+      {/* Telegram — only for members; there is nothing to connect otherwise */}
+      {profile.tier === "member" ? (
+        <>
+          <Eyebrow>Telegram</Eyebrow>
+          <TelegramPanel
+            connectedTo={await connectedTelegramAccount(profile.stripe_subscription_id)}
+          />
+        </>
+      ) : null}
 
       {/* Track record — real, settled picks since join */}
       <Eyebrow>Track Record</Eyebrow>

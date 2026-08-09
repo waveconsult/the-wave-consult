@@ -35,7 +35,10 @@ export async function GET(req: Request) {
       metadata: { plan, source: "landing", ...(tg ? { telegram_id: tg } : {}) },
       subscription_data: { metadata: { plan, ...(tg ? { telegram_id: tg } : {}) } },
       allow_promotion_codes: true,
-      success_url: `${SITE}/telegram/thanks?s={CHECKOUT_SESSION_ID}`,
+      // /telegram/welcome provisions the account and signs them in, then
+      // forwards to the thank-you page — so paying and having an account are
+      // one event rather than two.
+      success_url: `${SITE}/telegram/welcome?s={CHECKOUT_SESSION_ID}`,
       cancel_url: "https://www.wavehubtennis.com/#pricing",
     });
     if (!session.url) throw new Error("no url");
