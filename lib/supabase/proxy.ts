@@ -6,7 +6,15 @@ import { NextResponse, type NextRequest } from "next/server";
 // Middleware). Keep logic light — this is an optimistic check, not the only
 // authorization layer (RLS + per-page checks remain the source of truth).
 
-const PUBLIC_PREFIXES = ["/login", "/signup", "/auth", "/quiz", "/api"];
+// /telegram is public because that is where Stripe returns a buyer, and a buyer
+// is by definition not logged in yet — an account is never required to purchase.
+// Without it the proxy bounced them to /login the moment they finished paying,
+// so the screen carrying their group invite was unreachable for exactly the
+// people it exists for, and only the webhook's email got them in. /telegram
+// pages carry no member data: they read a Stripe session id the buyer is
+// already holding, and everything they can do with it is scoped to that
+// purchase.
+const PUBLIC_PREFIXES = ["/login", "/signup", "/auth", "/quiz", "/api", "/telegram"];
 
 function isPublic(pathname: string) {
   if (pathname === "/") return true;
