@@ -55,7 +55,7 @@ function pdfEmail(name: string, title: string, pdfUrl: string) {
   </td></tr>
   <tr><td style="padding:20px 28px 28px;font:400 12px/1.6 system-ui;color:#6a6a72">
     ATP only. WaveHub publishes sports analysis — we are not a bookmaker, we take no bets
-    and hold no money. Nothing here is a promise of profit. 18+.
+    and hold no money. Nothing here is a promise of profit.
   </td></tr>
 </table></td></tr></table></body></html>`;
 }
