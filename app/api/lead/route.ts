@@ -83,15 +83,16 @@ function assessmentEmail(name: string, read: Read, stake: number, vol: number) {
   // they just looked at.
   const covers = read.openPoints <= 0.6;
   const small = !covers && read.gap < 500;
-  const gapLabel = small ? "Where that leaves you today" : "What the structure is worth to you";
+  const gapLabel = small ? "What it is worth at your size" : "What the structure is worth to you";
   const closing = covers
     ? `You already do the hard part: you price the match before you look at the book, so there is very little
        left lying on the table. What you are missing is coverage, not method. Nobody watches sixty
        tournaments a year alone.`
     : small
-      ? `At this size the figure is not the reason to bother. The four steps below cost nothing to run at
-         ${money(stake)} a bet, and they are the same four steps at ten times that. Getting the structure
-         right is cheap now and expensive later.`
+      ? `That is money you are handing over for nothing, at the size you play now. The four steps below cost
+         the same to run at ${money(stake)} a bet as they do at ten times that, which is the whole reason to
+         put them in before the stakes go up rather than after. Structure first, size second. It does not
+         work in the other order.`
       : `On the same ATP match, the first price you see and the best price available are routinely a few percent
          apart. Against how you pick now, about ${read.openPoints.toFixed(1)} of those points are still on the
          table. Across a season on your turnover, that is ${money(read.gap)} that never depended on picking
@@ -130,7 +131,7 @@ function assessmentEmail(name: string, read: Read, stake: number, vol: number) {
   </td></tr>
   <tr><td style="padding:14px 28px 0">
     <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
-      ${row("Through your account in a season", money(read.turnover))}
+      ${row("Season turnover", money(read.turnover))}
       ${row("One percent of that", money(read.point))}
       ${row("How you price a match now", read.method)}
     </table>
