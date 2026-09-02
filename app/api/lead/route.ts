@@ -78,11 +78,12 @@ function freeGroupEmail(name: string, invite: string) {
   <tr><td style="padding:26px 28px 0">
     <div style="font:800 18px system-ui;letter-spacing:-.02em;color:#0B1B33">Wave<span style="color:#1D5CFF">Hub</span></div>
     <div style="margin-top:22px;font:600 11px system-ui;letter-spacing:2.6px;text-transform:uppercase;color:#1D5CFF">Your free access</div>
-    <div style="margin-top:8px;font:700 25px system-ui;letter-spacing:-.03em;color:#0B1B33">One ATP analysis, every day</div>
+    <div style="margin-top:8px;font:700 25px system-ui;letter-spacing:-.03em;color:#0B1B33">Daily ATP analysis, plus a free pick a week</div>
   </td></tr>
   <tr><td style="padding:18px 28px 0;font:400 15px/1.65 system-ui;color:#5A6B84">
-    ${hi}<br><br>here is your link to the group. Every day we post one ATP analysis in there:
-    the fair price our model makes it, the price we actually took, and the result either way.
+    ${hi}<br><br>here is your link to the group. Every day we post how our model reads the tour,
+    and once a week a free pick with the reasoning behind it. Every result gets documented,
+    wins and losses both.
   </td></tr>
   ${button}
   <tr><td style="padding:20px 28px 28px;font:400 12px/1.6 system-ui;color:#8496AF">
