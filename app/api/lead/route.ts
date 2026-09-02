@@ -60,6 +60,38 @@ function pdfEmail(name: string, title: string, pdfUrl: string) {
 </table></td></tr></table></body></html>`;
 }
 
+// The /free squeeze page hands out one thing: the invite to the free Telegram
+// group. The page redirects there straight away, so this email is the backup
+// copy — for people who lost the tab, or whose browser blocked the redirect.
+function freeGroupEmail(name: string, invite: string) {
+  const hi = name ? `Hi ${name},` : "Hi,";
+  const button = invite
+    ? `<tr><td style="padding:24px 28px 0">
+    <a href="${invite}" style="display:block;background:#1D5CFF;color:#fff;text-decoration:none;text-align:center;font:600 15px system-ui;padding:15px 24px;border-radius:999px">Open the Telegram group &rarr;</a>
+  </td></tr>`
+    : `<tr><td style="padding:24px 28px 0;font:400 14px/1.6 system-ui;color:#5A6B84">
+    We'll send the group link in a moment.
+  </td></tr>`;
+  return `<!doctype html><html><body style="margin:0;background:#EAF2FE;padding:28px 0;font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr><td align="center">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:520px;background:#fff;border:1px solid #CBD8EC;border-radius:18px;overflow:hidden">
+  <tr><td style="padding:26px 28px 0">
+    <div style="font:800 18px system-ui;letter-spacing:-.02em;color:#0B1B33">Wave<span style="color:#1D5CFF">Hub</span></div>
+    <div style="margin-top:22px;font:600 11px system-ui;letter-spacing:2.6px;text-transform:uppercase;color:#1D5CFF">Your free access</div>
+    <div style="margin-top:8px;font:700 25px system-ui;letter-spacing:-.03em;color:#0B1B33">One free pick, every week</div>
+  </td></tr>
+  <tr><td style="padding:18px 28px 0;font:400 15px/1.65 system-ui;color:#5A6B84">
+    ${hi}<br><br>you're in. Every week we post one ATP pick in the group: the fair price
+    our model makes it, the price we actually took, and the result either way.
+  </td></tr>
+  ${button}
+  <tr><td style="padding:20px 28px 28px;font:400 12px/1.6 system-ui;color:#8496AF">
+    ATP only. WaveHub publishes sports analysis &mdash; we are not a bookmaker, we take no bets
+    and hold no money. Nothing here is a promise of profit.
+  </td></tr>
+</table></td></tr></table></body></html>`;
+}
+
 // The /start funnel asks four questions and works out a figure from the
 // answers. The page shows it straight away; this is the copy that follows.
 // The arithmetic already happened on the page — we only lay it out here, so
@@ -197,6 +229,11 @@ export async function POST(req: Request) {
   const pdf = String(body.pdf ?? "").trim();
   const followedIg = body.followed_ig === true;
   const isAssessment = body.kind === "assessment";
+  const isFree = body.kind === "free";
+  // Public invite link — it sits in plain sight on /free, so a literal default
+  // is fine and saves an env var. Set TELEGRAM_FREE_INVITE to point elsewhere.
+  const freeInvite =
+    process.env.TELEGRAM_FREE_INVITE ?? "https://t.me/+IyD9Isx2p0VjNjNk";
 
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
     return NextResponse.json({ error: "Please enter a valid email." }, { status: 400, headers });
@@ -234,10 +271,16 @@ export async function POST(req: Request) {
       await resend.emails.send({
         from: process.env.RESEND_FROM ?? "WaveHub <onboarding@resend.dev>",
         to: email,
-        subject: isAssessment ? "Your betting framework" : `Your free ${title} preview`,
-        html: isAssessment
-          ? assessmentEmail(name, read, stake, vol)
-          : pdfEmail(name, title, pdfUrl),
+        subject: isFree
+          ? "You're in — one free ATP pick a week"
+          : isAssessment
+            ? "Your betting framework"
+            : `Your free ${title} preview`,
+        html: isFree
+          ? freeGroupEmail(name, freeInvite)
+          : isAssessment
+            ? assessmentEmail(name, read, stake, vol)
+            : pdfEmail(name, title, pdfUrl),
       });
       emailed = true;
     } catch {
