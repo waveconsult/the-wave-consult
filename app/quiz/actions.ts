@@ -53,7 +53,7 @@ export async function finishQuiz(input: {
       },
       { onConflict: "id" },
     );
-    // TODO (phase 2): send the value-read email via Resend / sync to Mailchimp.
+    // TODO (phase 2): send the value-read email via Resend.
   } catch {
     // Lead is lost only if the DB is down; still show the result screen.
   }

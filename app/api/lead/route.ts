@@ -7,7 +7,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 // Does three things, each independently best-effort:
 //   1. store the lead in Supabase (source of truth)
 //   2. email the PDF via Resend
-//   3. subscribe to Mailchimp, tagged with the tournament
+//   3. add to the Resend audience, but only where consent was given
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
