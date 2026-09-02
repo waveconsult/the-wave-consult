@@ -230,6 +230,10 @@ export async function POST(req: Request) {
   const followedIg = body.followed_ig === true;
   const isAssessment = body.kind === "assessment";
   const isFree = body.kind === "free";
+  // Two separate consents. Asking for the group link is a request we act on;
+  // being added to the mailing list is a choice, made with its own unticked
+  // box. Never infer the second from the first.
+  const wantsNewsletter = body.newsletter === true;
   // Public invite link — it sits in plain sight on /free, so a literal default
   // is fine and saves an env var. Set TELEGRAM_FREE_INVITE to point elsewhere.
   const freeInvite =
@@ -286,7 +290,9 @@ export async function POST(req: Request) {
     } catch {
       // fall through — the page falls back to a direct download link
     }
-    synced = await toAudience(resend, email, name);
+    // Only people who ticked the box go on the list. Everyone else still gets
+    // their invite email — that one is transactional.
+    synced = wantsNewsletter ? await toAudience(resend, email, name) : false;
   }
 
   try {
@@ -299,15 +305,19 @@ export async function POST(req: Request) {
       followed_ig: followedIg,
       emailed_at: emailed ? new Date().toISOString() : null,
       list_synced: synced,
+      newsletter_opt_in: wantsNewsletter,
     };
     if (answers) row.answers = answers;
 
-    // The answers column arrived with the /start funnel. If the migration has
-    // not been run yet the insert fails on that one column and we would lose
-    // the lead altogether — so drop it and keep the rest.
+    // Two columns arrived after the table did: `answers` with the /start
+    // funnel and `newsletter_opt_in` with the /free consent box. If either
+    // migration has not been run, the insert fails on that column alone and we
+    // would lose the lead entirely — so drop the optional ones and keep the
+    // rest. Losing a flag beats losing the person.
     const { error } = await admin.from("preview_leads").insert(row);
-    if (error && answers) {
+    if (error) {
       delete row.answers;
+      delete row.newsletter_opt_in;
       await admin.from("preview_leads").insert(row);
     }
   } catch {
